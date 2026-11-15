@@ -51,6 +51,12 @@ BATTERY_SAVE_MODE = 138
 SCHEDULE_WRITE = 125
 SCHEDULE_READ = 126
 SCHEDULE_LIST = 127
+# Type of a schedule: "Charge the battery", "Use the battery to power loads"
+SCHEDULE_CHARGE = 1
+SCHEDULE_USE_BATTERY = 2
+# Repeat of a schedule: daily (days 0), or chosen days (days is a bit mask)
+SCHEDULE_REPEAT_DAILY = 1
+SCHEDULE_REPEAT_DAYS = 2
 # Action of a schedule change
 SCHEDULE_ADD = 1
 SCHEDULE_EDIT = 2

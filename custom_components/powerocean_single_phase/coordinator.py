@@ -20,8 +20,9 @@ Usage:
 
 import asyncio
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_SCAN_INTERVAL
@@ -33,16 +34,29 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .api import AuthenticationError, EcoflowApiError, EcoflowConnectionError
-from .const import CONF_LIVE_POWER, DEFAULT_SCAN_INTERVAL, DOMAIN, LOGGER
+from .const import (
+    CONF_LIVE_POWER,
+    CONF_MAX_SCHEDULE_POWER,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    LOGGER,
+)
 from .ecoflow import HAEcoflowApi
 from .flows import energy_flows
 from .mqtt import (
     ENERGY_STREAM_STRINGS,
     MODULE_EMS,
     MODULE_METER,
+    SCHEDULE_ADD,
+    SCHEDULE_CHARGE,
+    SCHEDULE_EDIT,
+    SCHEDULE_REPEAT_DAILY,
+    SCHEDULE_REPEAT_DAYS,
+    SCHEDULE_USE_BATTERY,
     ModuleVersion,
     MqttCallbacks,
     PowerOceanMqtt,
+    Schedule,
     new_seq,
 )
 from .parse import parse
@@ -64,6 +78,15 @@ ENERGY_STREAM_INTERVAL = timedelta(seconds=20)
 ENERGY_STREAM_HOLD = timedelta(seconds=30)
 # How long a command may wait for the acknowledgement of the system
 COMMAND_TIMEOUT = 10
+# How often the schedules are asked for (the system does not report changes,
+# e.g. when it moves to the next schedule by itself)
+SCHEDULE_POLL_INTERVAL = timedelta(seconds=60)
+SCHEDULE_TYPES = (SCHEDULE_CHARGE, SCHEDULE_USE_BATTERY)
+# The app sets times in steps of 30 minutes, from 00:00 to 23:30
+SCHEDULE_STEP = 30
+SCHEDULE_LAST_MINUTE = 23 * 60 + 30
+# All seven days as a bit mask (Monday 1 to Sunday 64)
+ALL_DAYS = 127
 # Sent together with the backup reserve: datapoint -> report it is read from.
 # Not from the values directly under "data": those can be 0 while the
 # report holds the setting.
@@ -134,6 +157,14 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         self._stream_time: datetime | None = None
         # Commands waiting for their acknowledgement, by seq
         self._pending_acks: dict[int, asyncio.Future[None]] = {}
+        # Scheduled tasks (option MQTT), by id; None-known until the first list
+        self.schedules: dict[int, Schedule] = {}
+        self._schedules_known = False
+        self._schedule_poll_unsub: Callable[[], None] | None = None
+        # Waiting for the list after a command
+        self._schedule_waiters: list[asyncio.Future[None]] = []
+        # One schedule command at a time: the next id is the highest plus 1
+        self._schedule_lock = asyncio.Lock()
 
     async def _async_setup(self) -> None:
         """Log in once before the first refresh."""
@@ -276,6 +307,8 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
                 on_settings=self._from_mqtt_thread(self._apply_settings),
                 on_ack=self._from_mqtt_thread(self._apply_ack),
                 on_energy_stream=self._from_mqtt_thread(self._apply_energy_stream),
+                on_schedules=self._from_mqtt_thread(self._apply_schedules),
+                on_schedule=self._from_mqtt_thread(self._apply_schedule),
             )
             client = PowerOceanMqtt(
                 credentials, self.api.sn, self.api.user_id, callbacks
@@ -293,6 +326,10 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
                 self.hass, self._async_request_energy_stream, ENERGY_STREAM_INTERVAL
             )
             await self._async_request_energy_stream(dt_util.utcnow())
+        self._schedule_poll_unsub = async_track_time_interval(
+            self.hass, self._async_request_schedules, SCHEDULE_POLL_INTERVAL
+        )
+        await self._async_request_schedules(dt_util.utcnow())
         # Settings (LED brightness, backup reserve) become available
         self.async_update_listeners()
 
@@ -304,6 +341,11 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         if self._energy_stream_unsub:
             self._energy_stream_unsub()
             self._energy_stream_unsub = None
+        if self._schedule_poll_unsub:
+            self._schedule_poll_unsub()
+            self._schedule_poll_unsub = None
+        self.schedules = {}
+        self._schedules_known = False
         if self.mqtt:
             client, self.mqtt = self.mqtt, None
             await self.hass.async_add_executor_job(client.stop)
@@ -458,7 +500,7 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             )
         return self.mqtt
 
-    async def _async_command(self, send: Callable[..., None], *values: int) -> None:
+    async def _async_command(self, send: Callable[..., None], *values: Any) -> None:
         """Send a command (blocking, with the seq last) and wait for the ack."""
         seq = new_seq()
         acknowledged = self.hass.loop.create_future()
@@ -509,6 +551,190 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         self.mqtt_settings = mqtt_settings
         self.data = data
         self.async_update_listeners()
+
+    # -----------------------------
+    # Scheduled tasks (option MQTT)
+    # -----------------------------
+
+    @property
+    def max_schedule_power(self) -> int | None:
+        """Return the option "Max schedule power (W)", None if it is not set."""
+        value = self.config_entry.options.get(CONF_MAX_SCHEDULE_POWER)
+        return value if type(value) is int and value >= 1 else None
+
+    @property
+    def active_schedule(self) -> Schedule | None:
+        """Return the schedule the system is using now, None without one."""
+        return next((s for s in self.schedules.values() if s.in_use), None)
+
+    async def _async_request_schedules(self, _now: datetime) -> None:
+        """Ask the system for its schedules again (it reports no changes)."""
+        if self.mqtt:
+            await self.hass.async_add_executor_job(self.mqtt.request_schedules)
+
+    @callback
+    def _apply_schedules(self, schedules: list[Schedule]) -> None:
+        """Take over the list of schedules, ours or the app's."""
+        if not self.mqtt:
+            # Message arrived while the connection was being closed
+            return
+        new = {schedule.schedule_id: schedule for schedule in schedules}
+        changed = new != self.schedules or not self._schedules_known
+        self.schedules = new
+        self._schedules_known = True
+        for waiter in self._schedule_waiters:
+            if not waiter.done():
+                waiter.set_result(None)
+        if changed:
+            self.async_update_listeners()
+
+    @callback
+    def _apply_schedule(self, schedule: Schedule) -> None:
+        """Take over one schedule (the answer to a single read)."""
+        if not self.mqtt or self.schedules.get(schedule.schedule_id) == schedule:
+            return
+        self.schedules = {**self.schedules, schedule.schedule_id: schedule}
+        self.async_update_listeners()
+
+    def _known_schedule(self, schedule_id: int) -> Schedule:
+        if schedule_id not in self.schedules:
+            _refuse("schedule_not_found", schedule_id=schedule_id)
+        return self.schedules[schedule_id]
+
+    async def _async_reread_schedules(self, mqtt: PowerOceanMqtt) -> None:
+        """Read the list again after a command; no answer is not an error."""
+        waiter = self.hass.loop.create_future()
+        self._schedule_waiters.append(waiter)
+        try:
+            await self.hass.async_add_executor_job(mqtt.request_schedules)
+            async with asyncio.timeout(COMMAND_TIMEOUT):
+                await waiter
+        except TimeoutError:
+            LOGGER.debug("No answer to reading the schedules again")
+        finally:
+            self._schedule_waiters.remove(waiter)
+
+    async def async_set_schedule_enabled(
+        self, schedule_id: int, *, enabled: bool
+    ) -> None:
+        """
+        Switch a schedule on or off, wait for the acknowledgement, read again.
+
+        Raises:
+            HomeAssistantError: Without MQTT connection, for an unknown
+                schedule, or if the system does not acknowledge the command.
+
+        """
+        async with self._schedule_lock:
+            mqtt = self._connected_mqtt()
+            self._known_schedule(schedule_id)
+            await self._async_command(
+                mqtt.set_schedule_enabled, schedule_id, int(enabled)
+            )
+            await self._async_reread_schedules(mqtt)
+
+    async def async_delete_schedule(self, schedule_id: int) -> None:
+        """Delete a schedule, wait for the acknowledgement, read again."""
+        async with self._schedule_lock:
+            mqtt = self._connected_mqtt()
+            self._known_schedule(schedule_id)
+            await self._async_command(mqtt.delete_schedule, schedule_id)
+            await self._async_reread_schedules(mqtt)
+
+    async def async_add_schedule(  # noqa: PLR0913
+        self,
+        *,
+        schedule_type: int,
+        power: int,
+        start: int,
+        end: int,
+        days: int = 0,
+        enabled: bool = True,
+    ) -> int:
+        """
+        Add a schedule with the next free id and return the id.
+
+        Start and end are minutes since midnight. `days` is 0 for daily, or a
+        bit mask (Monday 1 to Sunday 64). Unknown: how the system chooses an
+        id itself (the app used the next free one) and how many it accepts.
+
+        Raises:
+            HomeAssistantError: Without MQTT connection or list of schedules,
+                for invalid values (see validate_schedule), or if the system
+                does not acknowledge the command.
+
+        """
+        async with self._schedule_lock:
+            mqtt = self._connected_mqtt()
+            if not self._schedules_known:
+                _refuse("schedules_unknown")
+            schedule = Schedule(
+                schedule_id=max(self.schedules, default=0) + 1,
+                schedule_type=schedule_type,
+                enabled=enabled,
+                power=power,
+                start=start,
+                end=end,
+                repeat=SCHEDULE_REPEAT_DAILY if days == 0 else SCHEDULE_REPEAT_DAYS,
+                days=days,
+            )
+            validate_schedule(schedule, self.max_schedule_power)
+            await self._async_command(mqtt.save_schedule, SCHEDULE_ADD, schedule)
+            await self._async_reread_schedules(mqtt)
+            return schedule.schedule_id
+
+    async def async_update_schedule(  # noqa: PLR0913
+        self,
+        schedule_id: int,
+        *,
+        schedule_type: int | None = None,
+        power: int | None = None,
+        start: int | None = None,
+        end: int | None = None,
+        days: int | None = None,
+        enabled: bool | None = None,
+    ) -> None:
+        """
+        Change a schedule: send the whole schedule, what is not given is kept.
+
+        The power is only checked against the option when it changes, and the
+        days only when they change (older schedules show repeat 65, kept as
+        it is).
+
+        Raises:
+            HomeAssistantError: Without MQTT connection, for an unknown
+                schedule, invalid values (see validate_schedule), or if the
+                system does not acknowledge the command.
+
+        """
+        async with self._schedule_lock:
+            mqtt = self._connected_mqtt()
+            current = self._known_schedule(schedule_id)
+            changes: dict[str, Any] = {
+                name: value
+                for name, value in (
+                    ("schedule_type", schedule_type),
+                    ("power", power),
+                    ("start", start),
+                    ("end", end),
+                    ("enabled", enabled),
+                )
+                if value is not None
+            }
+            if days is not None:
+                changes["days"] = days
+                changes["repeat"] = (
+                    SCHEDULE_REPEAT_DAILY if days == 0 else SCHEDULE_REPEAT_DAYS
+                )
+            schedule = replace(current, **changes)
+            validate_schedule(
+                schedule,
+                self.max_schedule_power,
+                check_power=power is not None,
+                check_days=days is not None,
+            )
+            await self._async_command(mqtt.save_schedule, SCHEDULE_EDIT, schedule)
+            await self._async_reread_schedules(mqtt)
 
     # -----------------------------
     # Live power values (option live power)
@@ -577,6 +803,58 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         for unique_id, value in self._stream_values.items():
             if unique_id in values:
                 values[unique_id] = value
+
+
+def _refuse(key: str, **placeholders: int) -> NoReturn:
+    """Raise the error for a refused schedule command."""
+    raise HomeAssistantError(
+        translation_domain=DOMAIN,
+        translation_key=key,
+        translation_placeholders={
+            name: str(value) for name, value in placeholders.items()
+        }
+        or None,
+    )
+
+
+def validate_schedule(
+    schedule: Schedule,
+    max_power: int | None,
+    *,
+    check_power: bool = True,
+    check_days: bool = True,
+) -> None:
+    """
+    Raise HomeAssistantError if a schedule may not be sent.
+
+    The type must be one of the app's two. Without the option "Max schedule
+    power (W)" nothing is accepted; the power is a whole number from 1 to the
+    option. Start and end are different times in steps of 30 minutes from
+    00:00 to 23:30 (the end may be before the start: over midnight). The days
+    are daily (repeat 1, days 0) or chosen (repeat 2, a mask from 1 to 127).
+    Unknown, so not checked: overlapping schedules, the number of schedules.
+    """
+    if schedule.schedule_type not in SCHEDULE_TYPES:
+        _refuse("schedule_invalid_type")
+    if max_power is None:
+        _refuse("max_schedule_power_not_set")
+    if check_power:
+        if schedule.power < 1:
+            _refuse("schedule_invalid_power")
+        if schedule.power > max_power:
+            _refuse(
+                "schedule_power_too_high", power=schedule.power, max_power=max_power
+            )
+    times = (schedule.start, schedule.end)
+    if schedule.start == schedule.end or any(
+        not 0 <= minute <= SCHEDULE_LAST_MINUTE or minute % SCHEDULE_STEP
+        for minute in times
+    ):
+        _refuse("schedule_invalid_time")
+    daily = (schedule.repeat, schedule.days) == (SCHEDULE_REPEAT_DAILY, 0)
+    chosen = schedule.repeat == SCHEDULE_REPEAT_DAYS and 1 <= schedule.days <= ALL_DAYS
+    if check_days and not (daily or chosen):
+        _refuse("schedule_invalid_days")
 
 
 def soc_limits_of(response: dict[str, Any]) -> dict[str, int]:

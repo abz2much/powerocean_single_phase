@@ -74,6 +74,7 @@ class FakeMqtt:
         self.started = self.stopped = False
         self.requests = 0
         self.energy_stream_requests = 0
+        self.schedule_list_requests = 0
         self.led_commands: list[int] = []
         self.soc_limit_commands: list[tuple[int, int, int]] = []
         self.battery_save_commands: list[tuple[int, int]] = []
@@ -94,6 +95,10 @@ class FakeMqtt:
     def request_energy_stream(self) -> None:
         """Count the requests."""
         self.energy_stream_requests += 1
+
+    def request_schedules(self) -> None:
+        """Count the requests."""
+        self.schedule_list_requests += 1
 
     def set_led_brightness(self, percent: int, seq: int) -> None:
         """Record the command; the system acknowledges it (paho's thread)."""

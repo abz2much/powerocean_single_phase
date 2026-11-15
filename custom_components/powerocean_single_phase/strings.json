@@ -89,6 +89,30 @@
     },
     "sys_zone_unknown": {
       "message": "The time zone of the system (sysZone) is not known yet, so the battery save mode cannot be sent. Please try again in a minute."
+    },
+    "schedule_not_found": {
+      "message": "There is no schedule with the number {schedule_id}."
+    },
+    "schedules_unknown": {
+      "message": "The schedules have not been read from the system yet. Try again in a moment."
+    },
+    "max_schedule_power_not_set": {
+      "message": "Set \"Max schedule power (W)\" in the options of the integration first."
+    },
+    "schedule_invalid_power": {
+      "message": "The power must be a whole number of at least 1 W."
+    },
+    "schedule_power_too_high": {
+      "message": "The power of {power} W is above \"Max schedule power (W)\" ({max_power} W)."
+    },
+    "schedule_invalid_time": {
+      "message": "Start and end must be different, in steps of 30 minutes, from 00:00 to 23:30."
+    },
+    "schedule_invalid_type": {
+      "message": "The type must be \"Charge the battery\" or \"Use the battery to power loads\"."
+    },
+    "schedule_invalid_days": {
+      "message": "The days must be daily, or a choice of days from Monday to Sunday."
     }
   },
   "entity": {
