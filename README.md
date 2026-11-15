@@ -36,9 +36,8 @@ Turn on the extended connection (MQTT) in the integration's options. Each schedu
 
 ```yaml
 action: powerocean_single_phase.add_schedule
-target:
-  device_id: <the inverter device>
 data:
+  device_id: <the inverter device>
   type: charge          # or use_battery
   power: 3000
   start: "02:00:00"

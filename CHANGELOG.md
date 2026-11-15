@@ -26,9 +26,9 @@
     ends in `_schedule_{id}` and does not. Attributes: `id`, `type`, `start`,
     `end`, `power`, `days`, `in_use`.
   - A sensor **Active schedule** with the schedule in use, or `none`.
-  - The actions `powerocean_single_phase.add_schedule` (target: the inverter
-    device), `update_schedule` and `delete_schedule` (target: a schedule
-    switch). Times are in steps of 30 minutes; each command waits for the
+  - The actions `powerocean_single_phase.add_schedule` (the field
+    `device_id`: the inverter device), `update_schedule` and
+    `delete_schedule` (target: a schedule switch). Times are in steps of 30 minutes; each command waits for the
     acknowledgement of the system and for its list to show the change, and
     gives an error if it does not.
 - **Option "Max schedule power (W)":** a whole number from 1, with no

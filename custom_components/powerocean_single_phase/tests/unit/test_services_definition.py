@@ -23,8 +23,12 @@ def test_the_three_actions() -> None:
 
 
 def test_the_targets() -> None:
-    # Add: the inverter device (there may be no schedule yet to point at)
-    assert SERVICES["add_schedule"]["target"] == {
+    # Add: the inverter device (there may be no schedule yet to point at).
+    # hassfest does not accept a device filter on target, so the device is a
+    # field with a device selector. A call with target.device_id still works,
+    # because Home Assistant merges the target into the data.
+    assert "target" not in SERVICES["add_schedule"]
+    assert SERVICES["add_schedule"]["fields"]["device_id"]["selector"] == {
         "device": {"integration": "powerocean_single_phase"}
     }
     for name in ("update_schedule", "delete_schedule"):
@@ -33,11 +37,11 @@ def test_the_targets() -> None:
         }
 
 
-def test_add_needs_type_power_start_and_end() -> None:
+def test_add_needs_device_type_power_start_and_end() -> None:
     fields = SERVICES["add_schedule"]["fields"]
 
     required = {name for name, field in fields.items() if field.get("required")}
-    assert required == {"type", "power", "start", "end"}
+    assert required == {"device_id", "type", "power", "start", "end"}
 
 
 @pytest.mark.parametrize("file", FILES)

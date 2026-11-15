@@ -904,8 +904,12 @@
   "services": {
     "add_schedule": {
       "name": "Add schedule",
-      "description": "Adds a scheduled task to the inverter, as in the EcoFlow app. Needs \"Max schedule power (W)\" in the options. Choose the inverter as the target.",
+      "description": "Adds a scheduled task to the inverter, as in the EcoFlow app. Needs \"Max schedule power (W)\" in the options. Choose the inverter in the Device field.",
       "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The inverter to add the schedule to."
+        },
         "type": {
           "name": "Type",
           "description": "Charge the battery, or use the battery to power loads."

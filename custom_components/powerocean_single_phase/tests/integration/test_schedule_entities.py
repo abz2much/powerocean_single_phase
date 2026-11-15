@@ -469,13 +469,15 @@ async def test_home_assistant_describes_the_actions(
     assert set(actions) == {"add_schedule", "update_schedule", "delete_schedule"}
     add = actions["add_schedule"]
     assert {name for name, field in add["fields"].items() if field.get("required")} == {
+        "device_id",
         "type",
         "power",
         "start",
         "end",
     }
     assert add["fields"]["enabled"]["default"] is True
-    assert add["target"] == {"device": [{"integration": DOMAIN}]}
+    assert add["fields"]["device_id"]["selector"]["device"]["integration"] == DOMAIN
+    assert "target" not in add
     assert actions["update_schedule"]["target"]["entity"] == [
         {"integration": DOMAIN, "domain": ["switch"]}
     ]

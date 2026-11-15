@@ -16,15 +16,14 @@ The switches and the sensor have these attributes: `id`, `type` (`charge` or `us
 
 | Action | Target | What it does |
 |---|---|---|
-| `powerocean_single_phase.add_schedule` | the inverter device | Adds a schedule |
+| `powerocean_single_phase.add_schedule` | the inverter device (the field `device_id`) | Adds a schedule |
 | `powerocean_single_phase.update_schedule` | a schedule switch | Changes a schedule |
 | `powerocean_single_phase.delete_schedule` | a schedule switch | Deletes a schedule |
 
 ```yaml
 action: powerocean_single_phase.add_schedule
-target:
-  device_id: <the inverter device>
 data:
+  device_id: <the inverter device>
   type: charge          # or use_battery
   power: 3000
   start: "02:00:00"

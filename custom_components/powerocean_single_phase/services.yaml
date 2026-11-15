@@ -1,8 +1,10 @@
 add_schedule:
-  target:
-    device:
-      integration: powerocean_single_phase
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: powerocean_single_phase
     type:
       required: true
       example: charge
