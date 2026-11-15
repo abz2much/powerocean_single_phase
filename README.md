@@ -1,24 +1,15 @@
 <!-- prettier-ignore -->
 # Ecoflow PowerOcean
-[![GitHub release](https://img.shields.io/github/release/niltrip/powerocean?include_prereleases=&sort=semver&color=blue)](https://github.com/niltrip/powerocean/releases/)
-[![issues - powerocean](https://img.shields.io/github/issues/niltrip/powerocean)](https://github.com/niltrip/powerocean/issues)
-[![GH-code-size](https://img.shields.io/github/languages/code-size/niltrip/powerocean?color=red)](https://github.com/niltrip/powerocean)
-[![GH-last-commit](https://img.shields.io/github/last-commit/niltrip/powerocean?style=flat-square)](https://github.com/niltrip/powerocean/commits/main)
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![HACS validation](https://github.com/niltrip/powerocean/workflows/Validate/badge.svg)](https://github.com/niltrip/powerocean/actions?query=workflow:"Validate")
-![installation_badge](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.powerocean.total)
 
 
-[Home Assistant](https://home-assistant.io/) custom component to get access to my EcoFlow PowerOcean system.
+[Home Assistant](https://home-assistant.io/) custom component to get access to an EcoFlow PowerOcean system.
 
 This component was inspired by [tolwi/hassio-ecoflow-cloud](https://github.com/tolwi/hassio-ecoflow-cloud) and is a copy of [evercape/hass-resol-KM2](https://github.com/evercape/hass-resol-KM2).
 
 ## Disclaimers
 
-⚠️ Temporary quick solution to my problem ("Nothing is more persistent than a makeshift solution.").
-I hope for an integration of PowerOcean into [tolwi/hassio-ecoflow-cloud](https://github.com/tolwi/hassio-ecoflow-cloud) with an official API.
-
-Nevertheless, I hope that it works for others as well.
+⚠️ This integration is not made or supported by EcoFlow. It uses the EcoFlow cloud, not an official API.
 
 ## Prerequisites
 
@@ -26,8 +17,7 @@ Nevertheless, I hope that it works for others as well.
 - The serial number (S/N) of your inverter, as shown in the EcoFlow app
 - The e-mail address and password of your EcoFlow account
 
-I have tested the component with my system.
-I use the Android app and the web portal at https://user-portal.ecoflow.com/
+The EcoFlow web portal is at https://user-portal.ecoflow.com/
 
 ## Installation
 
@@ -127,7 +117,7 @@ For a dashboard, take the values from `EMS_HEARTBEAT`:
 - house: `housePower`, which is calculated from the three values above
 
 The friendly names point the way: values from `data` and `ENERGY_STREAM_REPORT` end in "(cloud)", e.g. "House consumption (cloud)", the calculated values have no suffix, e.g. "House consumption".
-In dual systems (master and slave inverter), the values from `PARALLEL_ENERGY_STREAM_REPORT` end in "(energy flow)". According to [#23](https://github.com/niltrip/powerocean/issues/23) they are updated regularly, unlike those from `data`.
+In dual systems (master and slave inverter), the values from `PARALLEL_ENERGY_STREAM_REPORT` end in "(energy flow)". According to issue #23 of the original repository they are updated regularly, unlike those from `data`.
 
 ### Devices
 Each part of the system is a device of its own, named by its serial number and linked to the inverter. The serial number and, where the cloud reports it, the firmware are shown in the device info; the link "Visit" opens the EcoFlow web portal.
@@ -206,10 +196,12 @@ ECOFLOW_VARIANT=83
 
 ## Credits
 
-Thanks to my colleague David for giving me a starting point.
-
 Thanks to [shuette42](https://github.com/shuette42) for [ecoflow-energy-ha](https://github.com/shuette42/ecoflow-energy-ha): its protobuf definitions made the MQTT messages readable.
 
-Thanks to [Xygen](https://github.com/Xygen) for the diagnostics of a PowerGlow and a PowerPulse 2 and for the verified value mappings in his [PowerGlow](https://github.com/Xygen/EcoFlow-PowerGlow-for-Home-Assistant) and [PowerPulse 2](https://github.com/Xygen/EcoFlow-PowerPulse-2-for-Home-Assistant) integrations ([#132](https://github.com/niltrip/powerocean/discussions/132)).
+Thanks to [Xygen](https://github.com/Xygen) for the diagnostics of a PowerGlow and a PowerPulse 2 and for the verified value mappings in his [PowerGlow](https://github.com/Xygen/EcoFlow-PowerGlow-for-Home-Assistant) and [PowerPulse 2](https://github.com/Xygen/EcoFlow-PowerPulse-2-for-Home-Assistant) integrations.
 
 And also thanks for the great work of the team from homeassistant and the great community.
+
+## Credit and licence
+
+PowerOcean Single Phase includes work originally created by niltrip and is distributed under the [MIT License](LICENSE).
