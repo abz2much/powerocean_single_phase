@@ -59,6 +59,7 @@ from homeassistant.helpers.selector import (
 from .api import AuthenticationError, EcoflowApiError
 from .const import (
     CONF_LIVE_POWER,
+    CONF_MAX_SCHEDULE_POWER,
     CONF_MQTT,
     DEFAULT_NAME,
     DEFAULT_SCAN_INTERVAL,
@@ -94,6 +95,14 @@ SCAN_INTERVAL_SELECTOR = NumberSelector(
         min=10,
         max=60,
         unit_of_measurement="s",
+        mode=NumberSelectorMode.BOX,
+    )
+)
+MAX_SCHEDULE_POWER_SELECTOR = NumberSelector(
+    NumberSelectorConfig(
+        min=1,
+        step=1,
+        unit_of_measurement="W",
         mode=NumberSelectorMode.BOX,
     )
 )
@@ -347,6 +356,7 @@ class PowerOceanOptionsFlow(OptionsFlowWithReload):
       - Scan interval for periodic updates.
       - Additional MQTT connection (firmware of the modules, settings).
       - Live power values via MQTT (needs the MQTT connection).
+      - Highest power in W a schedule may use (optional).
 
     The entry is reloaded automatically after the options were saved.
     """
@@ -356,14 +366,16 @@ class PowerOceanOptionsFlow(OptionsFlowWithReload):
     ) -> ConfigFlowResult:
         """First step of the options flow."""
         if user_input is not None:
-            return self.async_create_entry(
-                data={
-                    **user_input,
-                    CONF_FRIENDLY_NAME: sanitize_device_name(
-                        user_input[CONF_FRIENDLY_NAME], fall_back=DEFAULT_NAME
-                    ),
-                },
-            )
+            data = {
+                **user_input,
+                CONF_FRIENDLY_NAME: sanitize_device_name(
+                    user_input[CONF_FRIENDLY_NAME], fall_back=DEFAULT_NAME
+                ),
+            }
+            if CONF_MAX_SCHEDULE_POWER in data:
+                # The number selector returns a float
+                data[CONF_MAX_SCHEDULE_POWER] = int(data[CONF_MAX_SCHEDULE_POWER])
+            return self.async_create_entry(data=data)
 
         options = self.config_entry.options
         return self.async_show_form(
@@ -379,6 +391,12 @@ class PowerOceanOptionsFlow(OptionsFlowWithReload):
                     vol.Required(
                         CONF_LIVE_POWER, default=options.get(CONF_LIVE_POWER, False)
                     ): bool,
+                    vol.Optional(
+                        CONF_MAX_SCHEDULE_POWER,
+                        description={
+                            "suggested_value": options.get(CONF_MAX_SCHEDULE_POWER)
+                        },
+                    ): MAX_SCHEDULE_POWER_SELECTOR,
                 }
             ),
         )

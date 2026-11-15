@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.powerocean_single_phase.api import (
@@ -333,6 +333,91 @@ async def test_options_flow_switches_live_power_on(
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options["live_power"] is True
+
+
+# -----------------------------
+# options flow: max schedule power
+# -----------------------------
+
+BASE_OPTIONS = {"friendly_name": "PowerOcean", "scan_interval": 10}
+
+
+async def _loaded_entry(hass: HomeAssistant) -> MockConfigEntry:
+    entry = _entry()
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+async def _save_options(
+    hass: HomeAssistant, entry: MockConfigEntry, user_input: dict
+) -> None:
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input
+    )
+    await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_max_schedule_power_is_unset_by_default(
+    hass: HomeAssistant, mock_setup_entry: AsyncMock
+) -> None:
+    entry = await _loaded_entry(hass)
+
+    await _save_options(hass, entry, BASE_OPTIONS)
+
+    assert "max_schedule_power" not in entry.options
+
+
+async def test_max_schedule_power_is_saved_as_whole_watts(
+    hass: HomeAssistant, mock_setup_entry: AsyncMock
+) -> None:
+    entry = await _loaded_entry(hass)
+
+    # The number selector returns a float
+    await _save_options(hass, entry, {**BASE_OPTIONS, "max_schedule_power": 3000.0})
+
+    assert entry.options["max_schedule_power"] == 3000
+    assert type(entry.options["max_schedule_power"]) is int
+
+
+async def test_max_schedule_power_can_be_cleared(
+    hass: HomeAssistant, mock_setup_entry: AsyncMock
+) -> None:
+    entry = await _loaded_entry(hass)
+    await _save_options(hass, entry, {**BASE_OPTIONS, "max_schedule_power": 3000})
+
+    await _save_options(hass, entry, BASE_OPTIONS)
+
+    assert "max_schedule_power" not in entry.options
+
+
+async def test_max_schedule_power_must_be_at_least_one(
+    hass: HomeAssistant, mock_setup_entry: AsyncMock
+) -> None:
+    entry = await _loaded_entry(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    with pytest.raises(InvalidData):
+        await hass.config_entries.options.async_configure(
+            result["flow_id"], {**BASE_OPTIONS, "max_schedule_power": 0}
+        )
+
+
+async def test_max_schedule_power_is_shown_in_the_form(
+    hass: HomeAssistant, mock_setup_entry: AsyncMock
+) -> None:
+    entry = await _loaded_entry(hass)
+    await _save_options(hass, entry, {**BASE_OPTIONS, "max_schedule_power": 3000})
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    (marker,) = (
+        key for key in result["data_schema"].schema if key == "max_schedule_power"
+    )
+    assert marker.description == {"suggested_value": 3000}
 
 
 # -----------------------------

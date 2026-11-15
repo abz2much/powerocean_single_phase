@@ -14,6 +14,8 @@ DEFAULT_NAME = "PowerOcean"
 CONF_MQTT = "mqtt"
 # Option: power values via MQTT every ~5 s (needs CONF_MQTT, off by default)
 CONF_LIVE_POWER = "live_power"
+# Option: highest power in W a schedule may use (no default; unset blocks schedules)
+CONF_MAX_SCHEDULE_POWER = "max_schedule_power"
 # EcoFlow web portal for owners (portal.ecoflow.com is the installer portal)
 PORTAL_URL = "https://user-portal.ecoflow.com/"
 PLATFORMS: list[Platform] = [Platform.NUMBER, Platform.SENSOR, Platform.SWITCH]
