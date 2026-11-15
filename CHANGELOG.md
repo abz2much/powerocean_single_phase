@@ -1,5 +1,49 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- **New domain `powerocean_single_phase`.** This is a separate integration,
+  not an update of `powerocean`. Install it, then remove the old entry and
+  add this one with the same serial number and device name. Unique IDs
+  (`{serial}_...`) are the same as before. The devices are new, so
+  automations and dashboards that refer to a device ID need the new one.
+  Areas, labels and renamed entity IDs are not carried over.
+- **English only.** The German and French translations are removed. The
+  attribute `product_description` of the sensors, for example "Hausnetz" or
+  "Ladezyklen", and the attribute `error_details` of the error count are now
+  English ("House grid", "Charge cycles").
+
+### New
+
+- **Scheduled tasks (with the MQTT option):** the "Scheduled tasks" of the
+  EcoFlow app, as the app sends them. The integration reads the list every
+  minute and after every command, because the system moves from one
+  schedule to the next by itself and reports no change.
+  - One **switch** for each schedule, named after what it does, for example
+    "Charge 02:00-06:00 3000 W". The name follows the schedule; the entity ID
+    ends in `_schedule_{id}` and does not. Attributes: `id`, `type`, `start`,
+    `end`, `power`, `days`, `in_use`.
+  - A sensor **Active schedule** with the schedule in use, or `none`.
+  - The actions `powerocean_single_phase.add_schedule` (target: the inverter
+    device), `update_schedule` and `delete_schedule` (target: a schedule
+    switch). Times are in steps of 30 minutes; each command waits for the
+    acknowledgement of the system.
+- **Option "Max schedule power (W)":** a whole number from 1, with no
+  default. Without it, `add_schedule` and `update_schedule` refuse. The
+  power of a schedule can be at most this value.
+
+Not known, so not checked: what the system does with overlapping schedules,
+how many schedules it accepts, and which power it allows.
+
+### Changed
+
+- The licence names niltrip and abz2much; the README has a "Credit and
+  licence" section. `scripts/deploy` copies the new folder. The comments,
+  docstrings and the texts of the scripts are English. The text of
+  `.github/release.yml` is still German.
+
 ## 2026.11.14
 
 ### New
