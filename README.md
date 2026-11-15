@@ -1,72 +1,38 @@
-<!-- prettier-ignore -->
 # PowerOcean Single Phase
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
-[Home Assistant](https://home-assistant.io/) custom component to get access to an EcoFlow PowerOcean system.
+A [Home Assistant](https://home-assistant.io/) integration for the EcoFlow PowerOcean Single Phase. It reads the values the EcoFlow cloud holds for your system and, over MQTT, changes a few settings and the app's scheduled tasks.
 
-This component was inspired by [tolwi/hassio-ecoflow-cloud](https://github.com/tolwi/hassio-ecoflow-cloud) and is a copy of [evercape/hass-resol-KM2](https://github.com/evercape/hass-resol-KM2).
+This integration is not made or supported by EcoFlow. It uses the EcoFlow cloud, not an official API.
 
-## Disclaimers
+## What you get
 
-⚠️ This integration is not made or supported by EcoFlow. It uses the EcoFlow cloud, not an official API.
+- Sensors for solar, grid, battery and house power, energy totals, the batteries, the smart meter and active errors.
+- Calculated energy flows, such as solar to house and battery to house.
+- With the optional MQTT connection: the EcoFlow app's scheduled tasks as switches, plus add, update and delete actions.
+- Also with MQTT: sliders for LED brightness, backup reserve and surplus solar energy delivery, a battery save mode switch, firmware versions and faster power values.
 
-## Prerequisites
+## Install
 
-- Home Assistant **2025.8.0** or newer
-- The serial number (S/N) of your inverter, as shown in the EcoFlow app
-- The e-mail address and password of your EcoFlow account
+You need Home Assistant 2025.8.0 or newer, the serial number of your inverter (shown in the EcoFlow app) and your EcoFlow account e-mail and password.
 
-The EcoFlow web portal is at https://user-portal.ecoflow.com/
+With HACS:
 
-## Installation
+1. In HACS, open the menu (three dots) and choose Custom repositories.
+2. Add `https://github.com/abz2much/powerocean_single_phase` with the type Integration.
+3. Search for "PowerOcean Single Phase", download it and restart Home Assistant.
+4. Go to Settings, Devices & services, Add integration, and pick PowerOcean Single Phase.
 
-- Install as a custom repository via HACS
-- Manually download and extract to the custom_components directory
+There is no release yet, so HACS installs the latest version of the main branch.
 
-Once installed, use Add Integration -> Ecoflow PowerOcean.
+Without HACS, copy `custom_components/powerocean_single_phase` into the `custom_components` folder of your Home Assistant and restart.
 
-## Configuration
+![Setup, step 1](docs/images/setup_step_01.png)
 
-Follow the flow.
+## Scheduled tasks
 
-![step 1](documentation/setup_step_01.png)
-![step 2](documentation/setup_step_02.png)
-![step 3](documentation/setup_step_03.png)
-
-### Extended connection (MQTT, optional)
-
-Off by default. Switch it on under *Settings → Devices & services → Ecoflow PowerOcean → ⚙ (Configure) → Extended connection (MQTT)*.
-
-The integration then additionally connects to the EcoFlow cloud the way the EcoFlow app does (MQTT, with the same account) and asks the system for its full state – after connecting, after each reconnect and every 6 hours. From the answer it reads the firmware of the modules:
-
-- **PowerOcean (inverter):** the firmware of the energy management (EMS), e.g. 5.1.38.5. The "system version" the app shows (e.g. 5.1.37.13) is the name of the whole update package and is not sent.
-- **Smart meter:** its firmware.
-- The other modules (inverter power stage, Wi-Fi) are listed in the diagnostics.
-
-**LED brightness:** With the option on, the inverter also gets a slider "LED brightness" (0–100 % in steps of 10, under *Configuration* on its device page). It sends the same command as the app and waits for the system to confirm it; if the system does not confirm it within 10 s, Home Assistant shows an error. A change in the app is shown right away as well. 0 % switches the LEDs off.
-
-**Backup reserve:** A second slider "Backup reserve" (0–100 % in steps of 1) sets the backup reserve as in the app. The system keeps it as the lowest state of charge for discharging (`sysBatDsgDownLimit`, the sensor "Backup reserve (discharge limit)"). The app's command also contains the charge limit and the surplus solar energy delivery (`devSoc`); the integration sends their current values unchanged, so it only changes the backup reserve. While it does not know them yet (e.g. right after the start), the slider is unavailable.
-
-**Surplus solar energy delivery:** A third slider (0–100 % in steps of 1) sets the app's "Surplus solar energy delivery" (`devSoc`). It uses the same command as the backup reserve and sends the charge limit and the backup reserve unchanged.
-
-**Battery save mode:** A switch "Battery save mode" turns the app's battery save mode on and off. The system reports this setting only via MQTT, so the switch is unavailable until the first report after connecting. The app's command also contains the time zone of the system (`sysZone`); the integration sends the reported value unchanged.
-
-**Live power values:** A second option "Live power values (MQTT)", also off by default, needs the extended connection. The integration then asks the system for its power values every 20 s, as the app does while it is open; the system answers every ~5 s with solar, grid, battery and house power, the power of the PV strings and the state of charge. The existing sensors show these values right away, so no open app or PowerInsight display is needed: house load, grid power, solar power and battery power (`sysLoadPwr`, `sysGridPwr`, `mpptPwr`, `bpPwr`), the PV strings of the energy stream and the calculated energy flows (solar to house, battery to grid, …). No new entities are added. Between two answers the polling shows the older values of the cloud; for 30 s after an answer the integration keeps the live values instead. Dual installations (two inverters) are not supported yet; there the option has no effect. This is the only request the integration sends regularly; it changes nothing on the system. With this option, a polling interval of 20–30 s is enough: the other values change in the cloud only every 20–60 s anyway.
-
-All other values still come from the regular polling. The cloud shows a changed setting only 20–60 s later; until then, for at most 2 minutes, the integration keeps the value the system confirmed via MQTT, so a slider does not jump back. The LED brightness, the backup reserve, the surplus solar energy delivery and the battery save mode are the only settings the integration changes. If the connection fails, the integration keeps working and logs a warning; the sliders and the switch are then unavailable. When you switch the option off, the sliders, the switch and the firmware of the inverter and the smart meter are removed again.
-
-
-
-### Scheduled tasks (MQTT)
-
-With the extended connection (MQTT) the integration shows the "Scheduled tasks" of the EcoFlow app and changes them as the app does. The system keeps the schedules itself, moves from one to the next by itself and reports no change. So the integration reads the list every minute, and again after every command.
-
-- **Switches:** one switch for each schedule, named after what it does, e.g. "Charge 02:00-06:00 3000 W". The name follows the schedule; the entity ID (`switch.{device_name}_schedule_{id}`) does not. Attributes: `id`, `type` (`charge` or `use_battery`), `start`, `end`, `power` (W), `days` (`daily` or a list of `mon` to `sun`) and `in_use`. Switching sends the same command as the app.
-- **Active schedule:** a sensor with what the schedule in use does, or `none`. It has the same attributes.
-- **Max schedule power (W):** an option, with no default. Without it `add_schedule` and `update_schedule` refuse. The power must be a whole number from 1 up to this value.
-
-The actions `powerocean_single_phase.add_schedule`, `update_schedule` and `delete_schedule` add, change and delete schedules. Add targets the inverter device; update and delete target a schedule switch.
+Turn on the extended connection (MQTT) in the integration's options. Each schedule from the EcoFlow app then appears as a switch, and you can add, change and delete schedules from Home Assistant:
 
 ```yaml
 action: powerocean_single_phase.add_schedule
@@ -80,154 +46,26 @@ data:
   days: [mon, tue, wed, thu, fri]   # leave out for every day
 ```
 
-`update_schedule` sends the whole schedule and keeps what you leave out. `daily: true` repeats every day (not together with `days`).
+You must set the option "Max schedule power (W)" first. Schedules may not overlap, and there can be at most six. Changing a schedule changes how your battery charges, so check the result in the EcoFlow app. The full rules are in [Scheduled tasks](docs/scheduled-tasks.md).
 
-Times are in steps of 30 minutes from 00:00 to 23:30; the end may be before the start (over midnight), but not equal to it. The app has no type for exporting to the grid; the system exports by itself when the battery is full. A new schedule gets the next free number, as the app does. Schedules may not overlap at any time of day, whatever their days and whether they are on or off; back to back is fine, as in the app. There can be at most 6, as in the app. The system itself accepts overlaps, so the integration refuses them. If the system does not acknowledge a command, Home Assistant shows an error.
+## Documentation
 
-### Sensors
-Sensors are registered to their device as `sensor.{device_name}_{sensor_name}`, where `sensor_name` is the name of the value in the EcoFlow API. The entity ID does not depend on the language.
-The friendly name is readable, in English, e.g. "State of charge" for `bpSoc`. Values whose meaning is not known yet keep `sensor_name` as friendly name.
-The unique ID is `{serial}_{report}_{sensor_name}`, e.g. `{serial}_JTS1_EMS_HEARTBEAT_pcsMeterPower`, or `{serial}_{sensor_name}` for values outside a report.
-
-Each sensor has these attributes:
-- `product_description`: description of the value, if known (otherwise its name)
-- `product_serial`: serial number of the device the value belongs to
-
-### Active errors
-The sensor `errorCount` (description "Active errors") of each inverter counts the errors the system currently reports, as the app shows them: from the EMS, the inverter (PCS) and the battery packs.
-Its attribute `errors` lists each active error with module, serial number of the module and error code; for known codes also name and level (Info, Warning, Error):
-
-```yaml
-errors:
-  - module: ems
-    module_sn: ...
-    code: 521
-    name: Energy storage communication error
-    level: Warning
-```
-
-Cause and solution are only available in the [EcoFlow web portal](https://user-portal.ecoflow.com/); the attribute `error_details` points there. The link "Visit" on the device page opens the portal as well.
-
-Since Home Assistant 2026.2 the dialog of a sensor no longer lists its attributes; open them via ⋮ → Details:
-
-![sensor errorCount with its attributes](documentation/error_sensor.png)
-
-### Which values update, and which do not
-
-The EcoFlow cloud does not refresh all values at the same rate. Some of them keep returning the same number for hours. The integration reports what the API hands it, so a flat line here is not a bug in this component.
-
-Measured on 2026-10-25 with `scripts/interval` (one request every 10 s) on a three-phase PowerOcean with two batteries: two hours with the app closed and the PowerInsight display switched off, then seven minutes with the PowerInsight display on:
-
-| group | reports | changes in 2 h | interval between changes |
-|---|---|---|---|
-| live measurements: grid, solar, battery and phase power | `EMS_HEARTBEAT` | 118 | 40–80 s, typically 50 s |
-| state, settings and counters of the system | `EMS_CHANGE_REPORT` | 289 | 20–30 s |
-| power distribution to wallbox and heating rod | `EDEV_SYS_REPORT` | 98 | irregular, 20 s to 8.5 min, typically 40 s |
-| battery packs | `BP_STA_REPORT` | 28 | about 5 min |
-| cloud values | `data`, `ENERGY_STREAM_REPORT`, `EMS_PV_INV_ENERGY_STREAM_REPORT` | 7–9 | without app or PowerInsight: only once, for 2.5 minutes, every 25 s (cause unknown); otherwise unchanged. The two other changes of `data` came about one hour apart (energy totals). **With the PowerInsight display on: every 20–30 s** |
-| parameters and errors | `EMS_PARAM_CHANGE_REPORT`, `ERROR_CHANGE_REPORT`, `LOGY_DEV_REPORT` | 0 | content unchanged (no errors during the measurement); only `updateTime` is renewed every 15 min |
-| configuration: schedules, time-of-use tasks, device lists, priorities | `TOU_ALL_TASK_REPORT`, `*_TIMER_TASK_REPORT`, `*_BIND_LIST_REPORT`, `EDEV_PRIORITY_LIST_REPORT`, `ERROR_CODE_MASK_REPORT` | 0 | change only when a setting changes |
-
-What this means:
-
-- The values that matter for a dashboard (`EMS_HEARTBEAT`, `EMS_CHANGE_REPORT`) arrive every 20–80 s on their own. The default scan interval of 10 s catches each change; a shorter one brings no fresher data.
-- The values from `data` and `ENERGY_STREAM_REPORT` stay old while nothing asks the cloud for them – an open app or a PowerInsight display that is switched on makes the cloud refresh them every 20–30 s. With the option "Live power values (MQTT)" the integration asks for them itself and gets the power values every ~5 s. All other reports keep their rhythm either way. Over 72 hours, @Kantripal saw `mpptPwr` and `pv1Pwr` stuck at 0 W while `mpptPv_pwrTotal` from the heartbeat changed more than 2100 times; on 2026-08-21 at 13:16 the same response held 0 W and 4238 W for the same solar power.
-- Battery pack values (cell voltages, temperatures, state of health) lag up to 5 minutes. For the battery state of charge and power, use the system values from `EMS_CHANGE_REPORT` and `EMS_HEARTBEAT`.
-- `updateTime` in the reports is in UTC+8 (China time). The integration converts it for the "time of the last values" sensors.
-
-For a dashboard, take the values from `EMS_HEARTBEAT`:
-
-- grid: `pcsMeterPower` (positive = import, negative = export) rather than `sysGridPwr`
-- solar: `mpptPv_pwrTotal` (sum of the PV strings) rather than `mpptPwr`, `pv1Pwr` or `pvInvPwr`
-- battery: `emsBpPower` rather than `bpPwr`
-- house: `housePower`, which is calculated from the three values above
-
-The friendly names point the way: values from `data` and `ENERGY_STREAM_REPORT` end in "(cloud)", e.g. "House consumption (cloud)", the calculated values have no suffix, e.g. "House consumption".
-In dual systems (master and slave inverter), the values from `PARALLEL_ENERGY_STREAM_REPORT` end in "(energy flow)". According to issue #23 of the original repository they are updated regularly, unlike those from `data`.
-
-### Devices
-Each part of the system is a device of its own, named by its serial number and linked to the inverter. The serial number and, where the cloud reports it, the firmware are shown in the device info; the link "Visit" opens the EcoFlow web portal.
-
-![devices of the integration](documentation/integration.png)
-
-**PowerOcean (inverter):** live values, calculated energy flows and the state of the system. The model ID in brackets is the product type you chose at setup (83 = PowerOcean).
-
-![inverter](documentation/powerocean.png)
-
-**Battery packs:** state of charge, power, energy and state of health per pack; the firmware is shown in the device info.
-
-![battery pack](documentation/battery-pack.png)
-
-**Smart meter:** power of each phase and the total, for three-phase meters. The number in brackets is the meter type.
-
-![smart meter](documentation/smart-meter.png)
-
-**PowerGlow heating rod** and **PowerPulse wallbox**, if present: temperatures, heating power and mode; charging power, currents, mode and the last charging session. Values marked "(cloud)" are probably only refreshed while the app is open, like the other cloud values above.
-
-![PowerGlow heating rod](documentation/powerglow.png)
-![PowerPulse wallbox](documentation/powerpulse.png)
-
-Apart from the settings of the inverter described above, this integration only reads values. To control the PowerGlow or the PowerPulse 2 (mode, target temperature, charging current, …), have a look at the integrations by [Xygen](https://github.com/Xygen): [EcoFlow PowerGlow for Home Assistant](https://github.com/Xygen/EcoFlow-PowerGlow-for-Home-Assistant) and [EcoFlow PowerPulse 2 for Home Assistant](https://github.com/Xygen/EcoFlow-PowerPulse-2-for-Home-Assistant).
-
-
-### Energy dashboard
-The EcoFlow API reports energy counters only for some values. These can be used in the energy dashboard as they are:
-
-- solar production: `totalElectricityGeneration`, shown as "Solar energy total" (kWh, changes about once per hour)
-- battery: `bpTotalChgEnergy` ("Battery charged energy") and `bpTotalDsgEnergy` ("Battery discharged energy")
-
-There is no counter for the single PV strings and none for the grid.
-
-- **PV strings, or solar with finer steps:** turn the power into energy with an [integral sensor](https://www.home-assistant.io/integrations/integration/). It can be created in the UI (Settings → Devices & services → Helpers → Integral sensor) or in YAML. [config/configuration.yaml](config/configuration.yaml) contains an example for all strings together and for each string.
-- **Grid import and export:** read your electricity meter locally, e.g. with a Tasmota reading head or a Shelly. The values come straight from your network instead of through the EcoFlow cloud, and they match what the meter shows. On my system the grid values from the cloud do not match the readings on my meter, so I would not build an energy counter on them.
-
-The same file contains template sensors for the battery: remaining charge time, remaining discharge time and the time the battery will be empty. Set the capacity and the backup reserve of your system there, and replace `SN` in the entity IDs with the serial number of your inverter.
-
-![dashboard](documentation/dashboard.PNG)
-
-
-## Troubleshooting
-
-**Diagnostics:** When you report a problem, please attach the diagnostics:
-*Settings → Devices & services → Ecoflow PowerOcean → ⋮ → Download diagnostics*.
-The file contains the last response of the EcoFlow cloud and the detected devices. Credentials, system name, location and time zone are removed, serial numbers are replaced by placeholders (`SN_MAIN`, `SN_BP01`, ...).
-
-**Login:** If EcoFlow rejects the credentials (e.g. after you changed your password), Home Assistant asks you to sign in again. If the cloud cannot be reached, the integration retries on its own.
-
-**Debug logging:** For more details, set the logging of this custom component to debug. If everything works well, you can remove it again:
-
-```yaml
-logger:
-  default: warn
-  logs:
-    custom_components.powerocean_single_phase: debug
-```
-
-**Recording MQTT messages:** To help decode a function of the EcoFlow app (for example a wallbox or heating rod setting), you can record what the app sends and how the system answers. You need a computer with a copy of this repository and its Python environment (`scripts/setup`).
-
-1. Run `scripts/capture`. It asks for serial number, email and password, signs in like the EcoFlow app and only listens: it sends nothing to your system.
-2. When it says "Verbunden", open the app and use the function. After each step, type a short note and press Enter, e.g. `LED 40 %`. The notes mark the moment in the recording.
-3. `q` and Enter ends the recording. The file `measurements/capture-….jsonl` can be attached to an issue or discussion.
-
-Serial numbers keep their length but are replaced (the inverter's keeps its first four characters, the model), user id, email and account are removed; at the end the file is checked for them and deleted if one is left. The recording still shows the power, battery and energy values of that time. Read your notes before you upload the file.
-
-To avoid typing the credentials each time, put them into `~/.config/powerocean/developer.env`, outside the repository, readable only by you (`chmod 600`):
-
-```
-ECOFLOW_SN=…
-ECOFLOW_EMAIL=…
-ECOFLOW_PASSWORD=…
-ECOFLOW_VARIANT=83
-```
+| Page | What is in it |
+|---|---|
+| [Scheduled tasks](docs/scheduled-tasks.md) | Switches, the Active schedule sensor, actions and rules |
+| [Extended connection (MQTT)](docs/extended-connection.md) | Firmware, sliders, battery save mode and live power values |
+| [Sensors and devices](docs/sensors-and-devices.md) | Entity IDs, attributes, active errors and each device |
+| [Which values update](docs/data-freshness.md) | How often the cloud refreshes each value, and which to use |
+| [Energy dashboard](docs/energy-dashboard.md) | Which sensors to use and how to fill the gaps |
+| [Troubleshooting](docs/troubleshooting.md) | Diagnostics, login problems, debug logging, recording MQTT |
+| [Changelog](CHANGELOG.md) | What changed in each version |
 
 ## Credits
 
-Thanks to [shuette42](https://github.com/shuette42) for [ecoflow-energy-ha](https://github.com/shuette42/ecoflow-energy-ha): its protobuf definitions made the MQTT messages readable.
+This integration started as a copy of [niltrip/powerocean](https://github.com/niltrip/powerocean), which was inspired by [tolwi/hassio-ecoflow-cloud](https://github.com/tolwi/hassio-ecoflow-cloud) and is a copy of [evercape/hass-resol-KM2](https://github.com/evercape/hass-resol-KM2).
 
-Thanks to [Xygen](https://github.com/Xygen) for the diagnostics of a PowerGlow and a PowerPulse 2 and for the verified value mappings in his [PowerGlow](https://github.com/Xygen/EcoFlow-PowerGlow-for-Home-Assistant) and [PowerPulse 2](https://github.com/Xygen/EcoFlow-PowerPulse-2-for-Home-Assistant) integrations.
+Thanks to [shuette42](https://github.com/shuette42) for [ecoflow-energy-ha](https://github.com/shuette42/ecoflow-energy-ha), whose protobuf definitions made the MQTT messages readable. Thanks to [Xygen](https://github.com/Xygen) for the diagnostics of a PowerGlow and a PowerPulse 2 and for the verified value mappings in his [PowerGlow](https://github.com/Xygen/EcoFlow-PowerGlow-for-Home-Assistant) and [PowerPulse 2](https://github.com/Xygen/EcoFlow-PowerPulse-2-for-Home-Assistant) integrations.
 
-And also thanks for the great work of the team from homeassistant and the great community.
-
-## Credit and licence
+## Licence
 
 PowerOcean Single Phase includes work originally created by niltrip and is distributed under the [MIT License](LICENSE).

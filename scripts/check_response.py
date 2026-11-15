@@ -17,11 +17,11 @@ This tool is useful for monitoring structural or value changes in the
 PowerOcean API or device configuration over time.
 
 Usage:
-    python -m documentation.powerocean_check_response [OPTIONS]
+    python scripts/check_response.py [OPTIONS]
 
 Examples:
     Save the current API response with redaction:
-        python -m documentation.powerocean_check_response \
+        python scripts/check_response.py \
             --username your@email.com \
             --password yourpassword \
             --sn your_sn \
@@ -30,7 +30,7 @@ Examples:
             --redact
 
     Compare current API response to a reference file:
-        python -m documentation.powerocean_check_response \
+        python scripts/check_response.py \
             --username your@email.com \
             --password yourpassword \
             --sn your_sn \
@@ -38,7 +38,7 @@ Examples:
             --fn_json powerocean/Response-EcoFlowAPI_2024-09-25_17-06-15.json
 
     Save differences in TXT and JSON format:
-        python -m documentation.powerocean_check_response \
+        python scripts/check_response.py \
             --username your@email.com \
             --password yourpassword \
             --sn your_sn \
@@ -47,7 +47,7 @@ Examples:
             --save_diff
 
     Generate a YAML diff report:
-        python -m documentation.powerocean_check_response \
+        python scripts/check_response.py \
             --username your@email.com \
             --password yourpassword \
             --sn your_sn \
@@ -57,7 +57,7 @@ Examples:
             --human_format yaml
 
 For a full list of options:
-    python -m documentation.powerocean_check_response --help
+    python scripts/check_response.py --help
 
 """
 

@@ -49,6 +49,9 @@ so not checked: which power the inverter allows.
   licence" section. `scripts/deploy` copies the new folder. The comments,
   docstrings and the texts of the scripts are English. The text of
   `.github/release.yml` is still German.
+- The README is short now. The details moved to pages in `docs/`, and the
+  screenshots to `docs/images/`. The script `check_response.py` moved from
+  `documentation/` to `scripts/`.
 
 ## 2026.11.14
 
