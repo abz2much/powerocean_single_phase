@@ -1,0 +1,15 @@
+{
+  "domain": "powerocean",
+  "name": "Ecoflow PowerOcean",
+  "codeowners": [
+    "@niltrip"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/niltrip/powerocean",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/niltrip/powerocean/issues",
+  "requirements": [
+    "paho-mqtt>=2.1.0"
+  ],
+  "version": "2026.11.14"
+}

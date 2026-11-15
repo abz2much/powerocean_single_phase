@@ -1,0 +1,56 @@
+# The contents of this file is based on https://github.com/home-assistant/core/blob/dev/pyproject.toml
+
+# Python 3.13: users with Home Assistant 2025.8 (hacs.json) still run it.
+# Tests and CI run on 3.14, the integration code must not need it.
+target-version = "py313"
+
+
+[lint]
+select = [
+    "ALL",
+]
+
+ignore = [
+    "ANN401", # Dynamically typed expressions (typing.Any) are disallowed
+    "D203", # no-blank-line-before-class (incompatible with formatter)
+    "D212", # multi-line-summary-first-line (incompatible with formatter)
+    "COM812", # incompatible with formatter
+    "ISC001", # incompatible with formatter
+    "EXE002",
+    "CPY001", # Missing copyright notice at top of file
+]
+
+[lint.per-file-ignores]
+"custom_components/powerocean/__init__.py" = ["PLR2004", "ARG001"]
+"custom_components/powerocean/config_flow.py" = ["ARG004"]
+"custom_components/powerocean/parser.py" = ["PLR0913", "F841"]
+"custom_components/powerocean/types.py" = ["UP040"]
+"custom_components/powerocean/collector.py" = ["PLR0913", "ARG002"]
+"custom_components/powerocean/tests/*.py" = [
+    "S101", # assert allowed in tests
+    "PLR2004", # magic values
+    "F841", # unused variables
+    "ANN201", # missing return type
+    "ANN001",
+    "D103",
+    "ARG001",
+]
+"custom_components/powerocean/tests/**/*.py" = [
+    "S101", # assert allowed in tests
+    "PLR2004", # magic values
+    "F841", # unused variables
+    "ANN201", # missing return type
+    "SLF001", # Private member accessed
+    "S105", # dummy credentials in tests
+    "S106", # dummy credentials in tests
+]
+"documentation/**/*.py" = ["ALL"]
+
+[lint.flake8-pytest-style]
+fixture-parentheses = false
+
+[lint.pyupgrade]
+keep-runtime-typing = true
+
+[lint.mccabe]
+max-complexity = 25
