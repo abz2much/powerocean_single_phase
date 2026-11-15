@@ -84,13 +84,28 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(_add_new_entities))
 
     active_schedule = PowerOceanActiveSchedule(coordinator)
-    if entry.options.get(CONF_MQTT, False):
-        async_add_entities([active_schedule])
-    elif entity_id := er.async_get(hass).async_get_entity_id(
-        SENSOR_DOMAIN, DOMAIN, active_schedule.unique_id
-    ):
+    if not entry.options.get(CONF_MQTT, False):
         # Switched off: remove it instead of leaving it unavailable
-        er.async_get(hass).async_remove(entity_id)
+        if entity_id := er.async_get(hass).async_get_entity_id(
+            SENSOR_DOMAIN, DOMAIN, active_schedule.unique_id
+        ):
+            er.async_get(hass).async_remove(entity_id)
+        return
+
+    active_added = False
+
+    @callback
+    def _add_active_schedule() -> None:
+        # Only when the list is known: by then the device has its name, which
+        # the entity ID is made from (not the serial number)
+        nonlocal active_added
+        if active_added or not coordinator.schedules_known:
+            return
+        active_added = True
+        async_add_entities([active_schedule])
+
+    _add_active_schedule()
+    entry.async_on_unload(coordinator.async_add_listener(_add_active_schedule))
 
 
 @callback

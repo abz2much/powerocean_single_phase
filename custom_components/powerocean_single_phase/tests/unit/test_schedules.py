@@ -17,6 +17,7 @@ from custom_components.powerocean_single_phase.schedules import (
     schedule_attributes,
     schedule_changes,
     schedule_title,
+    windows_overlap,
 )
 
 
@@ -147,3 +148,33 @@ def test_power_must_be_whole_watts(power: float) -> None:
         schedule_changes({"power": power})
 
     assert error.value.key == "schedule_invalid_power"
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "overlap"),
+    [
+        # Back to back is fine, in both orders
+        ((hm(8), hm(9)), (hm(9), hm(10)), False),
+        ((hm(9), hm(10)), (hm(8), hm(9)), False),
+        # A shared minute
+        ((hm(8), hm(9)), (hm(8, 30), hm(9, 30)), True),
+        ((hm(8), hm(12)), (hm(9), hm(10)), True),  # one inside the other
+        ((hm(8), hm(9)), (hm(8), hm(9)), True),  # the same
+        ((hm(8), hm(9)), (hm(10), hm(11)), False),
+        # Over midnight
+        ((hm(23), hm(2)), (hm(1), hm(3)), True),
+        ((hm(23), hm(2)), (hm(2), hm(6)), False),
+        ((hm(23), hm(2)), (hm(22), hm(23)), False),
+        ((hm(23), hm(2)), (hm(22), hm(23, 30)), True),
+        ((hm(23), hm(2)), (hm(22), hm(1)), True),  # both run over midnight
+        ((hm(23), hm(2)), (hm(8), hm(9)), False),
+        ((hm(23), hm(6)), (hm(2), hm(3)), True),
+    ],
+)
+def test_windows_overlap(
+    first: tuple[int, int],
+    second: tuple[int, int],
+    overlap: bool,  # noqa: FBT001 (pytest parameter)
+) -> None:
+    assert windows_overlap(*first, *second) is overlap
+    assert windows_overlap(*second, *first) is overlap

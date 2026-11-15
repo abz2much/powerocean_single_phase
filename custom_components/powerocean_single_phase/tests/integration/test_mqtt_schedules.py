@@ -483,8 +483,8 @@ async def test_add_with_chosen_days_and_switched_off(
     await coordinator.async_add_schedule(
         schedule_type=SCHEDULE_USE_BATTERY,
         power=3000,
-        start=hm(23),
-        end=hm(2),
+        start=hm(10),
+        end=hm(11),
         days=1 + 2 + 4 + 8 + 16,
         enabled=False,
     )
@@ -492,7 +492,7 @@ async def test_add_with_chosen_days_and_switched_off(
     ((name, sent),) = _client().commands
     assert name == "add"
     assert (sent.enabled, sent.repeat, sent.days) == (False, 2, 31)
-    assert (sent.start, sent.end) == (hm(23), hm(2))
+    assert (sent.start, sent.end) == (hm(10), hm(11))
 
 
 async def test_two_adds_at_once_get_different_ids(
@@ -500,12 +500,13 @@ async def test_two_adds_at_once_get_different_ids(
 ) -> None:
     coordinator = (await _setup(hass)).runtime_data
 
+    windows = [(hm(10), hm(11)), (hm(12), hm(13))]
     ids = await asyncio.gather(
         *(
             coordinator.async_add_schedule(
-                schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(1), end=hm(2)
+                schedule_type=SCHEDULE_CHARGE, power=1000, start=start, end=end
             )
-            for _ in range(2)
+            for start, end in windows
         )
     )
 
@@ -654,3 +655,169 @@ async def test_update_is_refused_for_invalid_values(
 
     assert _key(error) == "schedule_invalid_time"
     assert _client().commands == []
+
+
+# -----------------------------
+# No overlaps, and no more schedules than the app allows
+# -----------------------------
+
+
+def _free_schedules(count: int) -> list[Schedule]:
+    """Return `count` back-to-back one-hour charge schedules from 10:00."""
+    return [
+        listed(10 + n, SCHEDULE_CHARGE, 1000, hm(10 + n), hm(11 + n))
+        for n in range(count)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        (hm(8), hm(10)),  # into 10 (08:30-09:00) and the end of 12
+        (hm(5), hm(9, 30)),  # around 12 and 10
+        (hm(7), hm(8)),  # inside 12, which is switched off: it still counts
+        (hm(1), hm(3)),  # over the end of 11 (23:00-02:00)
+        (hm(20), hm(23, 30)),  # over the start of 11
+        (hm(23), hm(2)),  # the same as 11
+    ],
+)
+async def test_add_is_refused_when_it_overlaps(
+    hass: HomeAssistant, cloud: None, start: int, end: int
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+
+    with pytest.raises(HomeAssistantError) as error:
+        await coordinator.async_add_schedule(
+            schedule_type=SCHEDULE_CHARGE, power=1000, start=start, end=end
+        )
+
+    assert _key(error) == "schedule_overlap"
+    assert _client().commands == []
+
+
+async def test_the_error_names_the_schedule_in_the_way(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+
+    with pytest.raises(HomeAssistantError) as error:
+        await coordinator.async_add_schedule(
+            schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(8), end=hm(10)
+        )
+
+    assert error.value.translation_placeholders == {
+        "other": "Use battery 08:30-09:00 5000 W"
+    }
+
+
+async def test_the_days_make_no_difference_to_an_overlap(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+
+    with pytest.raises(HomeAssistantError) as error:
+        await coordinator.async_add_schedule(
+            schedule_type=SCHEDULE_CHARGE,
+            power=1000,
+            start=hm(8),
+            end=hm(10),
+            days=1,
+        )
+
+    assert _key(error) == "schedule_overlap"
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        (hm(9), hm(10)),  # starts when 10 ends
+        (hm(2), hm(6)),  # between the end of 11 and the start of 12
+        (hm(22), hm(23)),  # ends when 11 starts
+    ],
+)
+async def test_back_to_back_is_fine(
+    hass: HomeAssistant, cloud: None, start: int, end: int
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+
+    await coordinator.async_add_schedule(
+        schedule_type=SCHEDULE_CHARGE, power=1000, start=start, end=end
+    )
+
+    assert len(_client().commands) == 1
+
+
+async def test_update_is_refused_when_the_new_time_overlaps(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+
+    with pytest.raises(HomeAssistantError) as error:
+        await coordinator.async_update_schedule(12, end=hm(9))  # into 10
+
+    assert _key(error) == "schedule_overlap"
+    assert _client().commands == []
+
+
+async def test_update_does_not_overlap_itself(hass: HomeAssistant, cloud: None) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+
+    await coordinator.async_update_schedule(12, start=hm(6), end=hm(8, 30))
+
+    assert len(_client().commands) == 1
+
+
+async def test_update_without_a_new_time_ignores_an_old_overlap(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    ScheduleMqtt.system = [
+        listed(10, SCHEDULE_CHARGE, 1000, hm(8), hm(10)),
+        listed(11, SCHEDULE_CHARGE, 1000, hm(9), hm(11)),
+    ]
+    coordinator = (await _setup(hass)).runtime_data
+
+    await coordinator.async_update_schedule(10, power=1500)
+    assert coordinator.schedules[10].power == 1500
+
+    with pytest.raises(HomeAssistantError) as error:
+        await coordinator.async_update_schedule(10, end=hm(9, 30))
+    assert _key(error) == "schedule_overlap"
+
+
+async def test_the_seventh_schedule_is_refused(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    ScheduleMqtt.system = _free_schedules(6)
+    coordinator = (await _setup(hass)).runtime_data
+
+    with pytest.raises(HomeAssistantError) as error:
+        await coordinator.async_add_schedule(
+            schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(17), end=hm(18)
+        )
+
+    assert _key(error) == "schedule_limit_reached"
+    assert error.value.translation_placeholders == {"max": "6"}
+    assert _client().commands == []
+
+
+async def test_the_sixth_schedule_is_accepted(hass: HomeAssistant, cloud: None) -> None:
+    ScheduleMqtt.system = _free_schedules(5)
+    coordinator = (await _setup(hass)).runtime_data
+
+    await coordinator.async_add_schedule(
+        schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(17), end=hm(18)
+    )
+
+    assert len(coordinator.schedules) == 6
+
+
+async def test_at_the_limit_update_and_delete_still_work(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    ScheduleMqtt.system = _free_schedules(6)
+    coordinator = (await _setup(hass)).runtime_data
+
+    await coordinator.async_update_schedule(10, power=500)
+    await coordinator.async_delete_schedule(10)
+
+    assert len(coordinator.schedules) == 5

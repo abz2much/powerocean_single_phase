@@ -64,6 +64,7 @@ from .mqtt import (
     new_seq,
 )
 from .parse import parse
+from .schedules import schedule_title, windows_overlap
 from .types import PowerOceanEndPoint
 
 if TYPE_CHECKING:
@@ -86,6 +87,8 @@ COMMAND_TIMEOUT = 10
 # e.g. when it moves to the next schedule by itself)
 SCHEDULE_POLL_INTERVAL = timedelta(seconds=60)
 SCHEDULE_TYPES = (SCHEDULE_CHARGE, SCHEDULE_USE_BATTERY)
+# The most schedules the app allows
+MAX_SCHEDULES = 6
 # The app sets times in steps of 30 minutes, from 00:00 to 23:30
 SCHEDULE_STEP = 30
 SCHEDULE_LAST_MINUTE = 23 * 60 + 30
@@ -605,6 +608,14 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         self.schedules = {**self.schedules, schedule.schedule_id: schedule}
         self.async_update_listeners()
 
+    def _check_overlap(self, schedule: Schedule) -> None:
+        """Refuse a time that overlaps another schedule, whatever the days."""
+        for other in self.schedules.values():
+            if other.schedule_id != schedule.schedule_id and windows_overlap(
+                schedule.start, schedule.end, other.start, other.end
+            ):
+                _refuse("schedule_overlap", other=schedule_title(other))
+
     def _known_schedule(self, schedule_id: int) -> Schedule:
         if schedule_id not in self.schedules:
             _refuse("schedule_not_found", schedule_id=schedule_id)
@@ -677,6 +688,8 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             mqtt = self._connected_mqtt()
             if not self._schedules_known:
                 _refuse("schedules_unknown")
+            if len(self.schedules) >= MAX_SCHEDULES:
+                _refuse("schedule_limit_reached", max=MAX_SCHEDULES)
             schedule = Schedule(
                 schedule_id=max(self.schedules, default=0) + 1,
                 schedule_type=schedule_type,
@@ -688,6 +701,7 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
                 days=days,
             )
             validate_schedule(schedule, self.max_schedule_power)
+            self._check_overlap(schedule)
             await self._async_command(mqtt.save_schedule, SCHEDULE_ADD, schedule)
             await self._async_reread_schedules(mqtt)
             return schedule.schedule_id
@@ -706,9 +720,9 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         """
         Change a schedule: send the whole schedule, what is not given is kept.
 
-        The power is only checked against the option when it changes, and the
+        The power is only checked against the option when it changes, the
         days only when they change (older schedules show repeat 65, kept as
-        it is).
+        it is) and the time for overlaps only when it changes.
 
         Raises:
             HomeAssistantError: Without MQTT connection, for an unknown
@@ -742,6 +756,8 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
                 check_power=power is not None,
                 check_days=days is not None,
             )
+            if start is not None or end is not None:
+                self._check_overlap(schedule)
             await self._async_command(mqtt.save_schedule, SCHEDULE_EDIT, schedule)
             await self._async_reread_schedules(mqtt)
 
@@ -814,7 +830,7 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
                 values[unique_id] = value
 
 
-def _refuse(key: str, **placeholders: int) -> NoReturn:
+def _refuse(key: str, **placeholders: int | str) -> NoReturn:
     """Raise the error for a refused schedule command."""
     raise ServiceValidationError(
         translation_domain=DOMAIN,

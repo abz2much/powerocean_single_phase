@@ -38,6 +38,10 @@ KEY_INVALID_TIME = "schedule_invalid_time"
 KEY_DAYS_AND_DAILY = "schedule_days_and_daily"
 
 
+# Minutes in a day: a window may run over midnight
+DAY_MINUTES = 24 * 60
+
+
 class ScheduleInputError(ValueError):
     """The input of an action is wrong; `key` is the key of the error text."""
 
@@ -132,3 +136,25 @@ def schedule_changes(data: Mapping[str, Any]) -> dict[str, Any]:
     if "enabled" in data:
         changes["enabled"] = bool(data["enabled"])
     return changes
+
+
+def _segments(start: int, end: int) -> list[tuple[int, int]]:
+    """Return a window as segments within one day (two over midnight)."""
+    if start < end:
+        return [(start, end)]
+    return [(start, DAY_MINUTES), (0, end)]
+
+
+def windows_overlap(start1: int, end1: int, start2: int, end2: int) -> bool:
+    """
+    Return True if two daily windows share a minute.
+
+    Minutes since midnight; a window may run over midnight (end before
+    start). Back to back (one ends when the other starts) is no overlap, as
+    in the app. The days are not looked at.
+    """
+    return any(
+        first_start < second_end and second_start < first_end
+        for first_start, first_end in _segments(start1, end1)
+        for second_start, second_end in _segments(start2, end2)
+    )

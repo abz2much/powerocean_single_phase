@@ -119,6 +119,12 @@
     },
     "schedule_days_and_daily": {
       "message": "Use either \"Days\" or \"Every day\", not both."
+    },
+    "schedule_overlap": {
+      "message": "The time overlaps the schedule \"{other}\". Schedules may not overlap; back to back is fine."
+    },
+    "schedule_limit_reached": {
+      "message": "There are already {max} schedules, the most the app allows. Delete one first."
     }
   },
   "entity": {

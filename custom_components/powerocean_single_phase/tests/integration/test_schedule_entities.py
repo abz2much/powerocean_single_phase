@@ -277,8 +277,8 @@ async def test_add_schedule_with_days_switched_off(
         device_id=device.id,
         type="use_battery",
         power=3000,
-        start="23:00:00",
-        end="02:00:00",
+        start="10:00:00",
+        end="11:00:00",
         days=["mon", "tue", "wed", "thu", "fri"],
         enabled=False,
     )
@@ -484,3 +484,36 @@ async def test_home_assistant_describes_the_actions(
     assert texts[f"{prefix}.add_schedule.name"] == "Add schedule"
     assert texts[f"{prefix}.add_schedule.fields.power.name"] == "Power"
     assert texts[f"{prefix}.delete_schedule.name"] == "Delete schedule"
+
+
+async def test_add_schedule_refuses_an_overlap(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    await _setup(hass)
+    device = get_device(hass, SN)
+    assert device
+
+    with pytest.raises(HomeAssistantError) as error:
+        await _call(
+            hass,
+            "add_schedule",
+            device_id=device.id,
+            type="charge",
+            power=1000,
+            start="08:00:00",
+            end="10:00:00",
+        )
+
+    assert error.value.translation_key == "schedule_overlap"
+    assert _client().commands == []
+
+
+async def test_the_active_sensor_entity_id_has_no_serial_number(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    await _setup(hass)
+
+    entity_id = _entity_id(hass, "sensor", f"{SN}_active_schedule")
+
+    assert entity_id
+    assert SN.lower() not in entity_id

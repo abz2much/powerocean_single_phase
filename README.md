@@ -82,7 +82,7 @@ data:
 
 `update_schedule` sends the whole schedule and keeps what you leave out. `daily: true` repeats every day (not together with `days`).
 
-Times are in steps of 30 minutes from 00:00 to 23:30; the end may be before the start (over midnight), but not equal to it. The app has no type for exporting to the grid; the system exports by itself when the battery is full. A new schedule gets the next free number, as the app does. If the system does not acknowledge a command, Home Assistant shows an error. What the system does with overlapping schedules, and how many it accepts, is not known; the integration does not check it.
+Times are in steps of 30 minutes from 00:00 to 23:30; the end may be before the start (over midnight), but not equal to it. The app has no type for exporting to the grid; the system exports by itself when the battery is full. A new schedule gets the next free number, as the app does. Schedules may not overlap at any time of day, whatever their days and whether they are on or off; back to back is fine, as in the app. There can be at most 6, as in the app. The system itself accepts overlaps, so the integration refuses them. If the system does not acknowledge a command, Home Assistant shows an error.
 
 ### Sensors
 Sensors are registered to their device as `sensor.{device_name}_{sensor_name}`, where `sensor_name` is the name of the value in the EcoFlow API. The entity ID does not depend on the language.

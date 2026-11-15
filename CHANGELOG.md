@@ -34,11 +34,16 @@
   default. Without it, `add_schedule` and `update_schedule` refuse. The
   power of a schedule can be at most this value.
 
-Not known, so not checked: what the system does with overlapping schedules,
-how many schedules it accepts, and which power it allows.
+Schedules may not overlap at any time of day (the days and on or off do not
+matter; back to back is fine), and there can be at most 6, as in the app. The
+inverter itself accepts overlaps, so the integration refuses them. Not known,
+so not checked: which power the inverter allows.
 
 ### Changed
 
+- The sensor **Active schedule** appears once the first list of schedules
+  is read, and its entity ID uses the device name instead of the serial
+  number.
 - The licence names niltrip and abz2much; the README has a "Credit and
   licence" section. `scripts/deploy` copies the new folder. The comments,
   docstrings and the texts of the scripts are English. The text of

@@ -9,7 +9,6 @@ platform). All three need the option "Max schedule power (W)", except delete.
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -66,13 +65,12 @@ def _coordinator_for_device(
     hass: HomeAssistant, device_id: str
 ) -> PowerOceanCoordinator:
     """Return the coordinator of the system whose inverter is the device."""
-    device = dr.async_get(hass).async_get(device_id)
-    for entry_id in device.config_entries if device else ():
-        entry = hass.config_entries.async_get_entry(entry_id)
-        if entry and entry.domain == DOMAIN and entry.state is ConfigEntryState.LOADED:
-            coordinator: PowerOceanCoordinator = entry.runtime_data
-            if device and (DOMAIN, coordinator.api.sn) in device.identifiers:
-                return coordinator
+    device_registry = dr.async_get(hass)
+    for entry in hass.config_entries.async_loaded_entries(DOMAIN):
+        coordinator: PowerOceanCoordinator = entry.runtime_data
+        device = coordinator.devices(device_registry).get(coordinator.api.sn)
+        if device and device.id == device_id:
+            return coordinator
     raise ServiceValidationError(
         translation_domain=DOMAIN, translation_key="schedule_target"
     )
