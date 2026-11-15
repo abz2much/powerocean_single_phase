@@ -24,8 +24,6 @@ With HACS:
 3. Search for "PowerOcean Single Phase", download it and restart Home Assistant.
 4. Go to Settings, Devices & services, Add integration, and pick PowerOcean Single Phase.
 
-There is no release yet, so HACS installs the latest version of the main branch.
-
 Without HACS, copy `custom_components/powerocean_single_phase` into the `custom_components` folder of your Home Assistant and restart.
 
 ![Setup, step 1](docs/images/setup_step_01.png)
