@@ -3,9 +3,9 @@
 Readable entity names from scripts/entity_names.csv.
 
 The table is the only place to edit names. This script writes them into
-strings.json, translations/en.json, translations/de.json and entity_names.py,
-and adds a row (without names) for every datapoint key of the fixtures that
-the table does not list yet.
+strings.json, translations/en.json and entity_names.py, and adds a row
+(without names) for every datapoint key of the fixtures that the table does
+not list yet.
 
     scripts/names            update the table and the generated files
     scripts/names --check    only report what is out of date (exit code 1)
@@ -15,7 +15,7 @@ Columns of the table (separated by ";"):
     key      datapoint key, e.g. bpSoc
     context  empty, or where the name differs: "pack" (battery pack),
              "inverter" (one inverter of a dual system)
-    en, de   name; empty: the key stays the name
+    en       name; empty: the key stays the name
     note     for sorting only
 """
 
@@ -38,12 +38,11 @@ from custom_components.powerocean.parse import parse  # noqa: E402
 TABLE = ROOT / "scripts" / "entity_names.csv"
 COMPONENT = ROOT / "custom_components" / "powerocean"
 FIXTURES = COMPONENT / "tests" / "fixtures"
-COLUMNS = ["group", "key", "context", "en", "de", "note"]
+COLUMNS = ["group", "key", "context", "en", "note"]
 # Translation file -> language of its names
 LANGUAGES = {
     COMPONENT / "strings.json": "en",
     COMPONENT / "translations" / "en.json": "en",
-    COMPONENT / "translations" / "de.json": "de",
 }
 NAMES_MODULE = COMPONENT / "entity_names.py"
 # Model of the fixtures that are not a PowerOcean (83)
@@ -111,8 +110,6 @@ def problems(rows: list[dict[str, str]]) -> list[str]:
             found.append(f"{key}: unbekannter Kontext {context!r}")
         if context and key in TRANSLATED_STATES:
             found.append(f"{key}: übersetzte Zustände gibt es nur ohne Kontext")
-        if row["de"] and not row["en"]:
-            found.append(f"{key}: deutscher Name ohne englischen")
         if not row["en"]:
             continue
         name_key = name_translation_key(context, key)

@@ -60,7 +60,7 @@ All other values still come from the regular polling. The cloud shows a changed 
 
 ### Sensors
 Sensors are registered to their device as `sensor.{device_name}_{sensor_name}`, where `sensor_name` is the name of the value in the EcoFlow API. The entity ID does not depend on the language.
-The friendly name is readable, in English or German depending on the language of Home Assistant, e.g. "State of charge" for `bpSoc`. Values whose meaning is not known yet keep `sensor_name` as friendly name.
+The friendly name is readable, in English, e.g. "State of charge" for `bpSoc`. Values whose meaning is not known yet keep `sensor_name` as friendly name.
 The unique ID is `{serial}_{report}_{sensor_name}`, e.g. `{serial}_JTS1_EMS_HEARTBEAT_pcsMeterPower`, or `{serial}_{sensor_name}` for values outside a report.
 
 Each sensor has these attributes:

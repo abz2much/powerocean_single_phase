@@ -13,7 +13,7 @@ from custom_components.powerocean.types import translation_key
 
 COMPONENT_DIR = Path(__file__).parent.parent.parent
 ROOT = COMPONENT_DIR.parent.parent
-FILES = ["strings.json", "translations/en.json", "translations/de.json"]
+FILES = ["strings.json", "translations/en.json"]
 # As hassfest checks translation keys: lowercase, no leading/double "_"
 TRANSLATION_KEY = re.compile(r"^(?!.+[_-]{2})(?![_-])[a-z0-9-_]+(?<![_-])$")
 
@@ -21,6 +21,12 @@ TRANSLATION_KEY = re.compile(r"^(?!.+[_-]{2})(?![_-])[a-z0-9-_]+(?<![_-])$")
 def _sensor_translations(file: str) -> dict:
     data = json.loads((COMPONENT_DIR / file).read_text("utf-8"))
     return data["entity"]["sensor"]
+
+
+def test_only_english_translations() -> None:
+    """English is the only language: strings.json and translations/en.json."""
+    files = sorted(path.name for path in (COMPONENT_DIR / "translations").iterdir())
+    assert files == ["en.json"]
 
 
 def test_translation_key() -> None:
@@ -50,7 +56,7 @@ def test_names_match_the_table() -> None:
         text=True,
         check=False,
     )
-    assert result.returncode == 0, f"scripts/names ausführen:\n{result.stdout}"
+    assert result.returncode == 0, f"run scripts/names:\n{result.stdout}"
 
 
 @pytest.mark.parametrize("file", FILES[1:])
@@ -87,10 +93,7 @@ async def test_home_assistant_loads_the_states(
         async_get_translations,
     )
 
-    texts = await async_get_translations(hass, "de", "entity", {"powerocean"})
+    texts = await async_get_translations(hass, "en", "entity", {"powerocean"})
     prefix = "component.powerocean.entity.sensor"
-    assert (
-        texts[f"{prefix}.ems_word_mode.state.workmode_selfuse"]
-        == "Eigenstromversorgung"
-    )
-    assert texts[f"{prefix}.pcs_run_sta.state.runsta_stop"] == "Gestoppt"
+    assert texts[f"{prefix}.ems_word_mode.state.workmode_selfuse"] == "Self-powered"
+    assert texts[f"{prefix}.pcs_run_sta.state.runsta_stop"] == "Stopped"
