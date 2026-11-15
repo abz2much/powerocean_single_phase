@@ -1,0 +1,77 @@
+"""tests/utils."""
+
+from enum import Enum
+from typing import Any
+
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+
+from custom_components.powerocean_single_phase.const import DOMAIN
+from custom_components.powerocean_single_phase.parse import parse
+from custom_components.powerocean_single_phase.types import PowerOceanEndPoint
+
+SN = "SN_INVERTERBOX01"
+
+
+def get_device(hass: HomeAssistant, sn: str) -> dr.DeviceEntry | None:
+    """Return the device with the serial number `sn` of a PowerOcean entry."""
+    registry = dr.async_get(hass)
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if device := registry.async_get_device_by_identifier(
+            (DOMAIN, sn), entry.entry_id
+        ):
+            return device
+    return None
+
+
+def parse_structure(
+    response: dict, variant: str, sn: str = SN
+) -> dict[str, PowerOceanEndPoint]:
+    """Return the endpoints of a response, as the coordinator builds them."""
+    return {
+        unique_id: PowerOceanEndPoint.from_datapoint(datapoint)
+        for unique_id, datapoint in parse(response, sn, variant).first().items()
+    }
+
+
+def parse_values(response: dict, variant: str, sn: str = SN) -> dict[str, Any]:
+    """Return the values of a response, as the coordinator returns them."""
+    return parse(response, sn, variant).values()
+
+
+def serialize_sensors(sensors: dict[str, PowerOceanEndPoint]) -> dict:
+    """
+    Convert EndPoint objects into a JSON-serializable dict for Golden Master testing.
+
+    Args:
+        sensors: dict of PowerOceanEndPoint objects keyed by unique_id.
+
+    Returns:
+        dict: Flattened, serializable dict of sensors.
+
+    """
+    serialized = {}
+    for uid, sensor in sensors.items():
+        serialized[uid] = {
+            "internal_unique_id": getattr(sensor, "internal_unique_id", ""),
+            "name": getattr(sensor, "name", ""),
+            "friendly_name": getattr(sensor, "friendly_name", ""),
+            "value": getattr(sensor, "value", None),
+            "unit": (getattr(sensor, "cls", None) or (None, None, None))[1],
+            "description": getattr(sensor, "description", ""),
+            "icon": getattr(sensor, "icon", None),
+        }
+    # Sort keys to ensure deterministic order
+    return dict(sorted(serialized.items(), key=lambda x: x[0]))
+
+
+def normalize(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        return {k: normalize(v) for k, v in obj.items()}
+    if isinstance(obj, tuple):
+        return [normalize(v) for v in obj]
+    if isinstance(obj, list):
+        return [normalize(v) for v in obj]
+    if isinstance(obj, Enum):
+        return obj.value
+    return obj

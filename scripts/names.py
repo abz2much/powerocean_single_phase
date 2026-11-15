@@ -28,15 +28,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from custom_components.powerocean.datapoints import (  # noqa: E402
+from custom_components.powerocean_single_phase.datapoints import (  # noqa: E402
     NAME_CONTEXTS,
     TRANSLATED_STATES,
     translation_key,
 )
-from custom_components.powerocean.parse import parse  # noqa: E402
+from custom_components.powerocean_single_phase.parse import parse  # noqa: E402
 
 TABLE = ROOT / "scripts" / "entity_names.csv"
-COMPONENT = ROOT / "custom_components" / "powerocean"
+COMPONENT = ROOT / "custom_components" / "powerocean_single_phase"
 FIXTURES = COMPONENT / "tests" / "fixtures"
 COLUMNS = ["group", "key", "context", "en", "note"]
 # Translation file -> language of its names

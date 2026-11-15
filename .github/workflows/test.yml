@@ -27,5 +27,5 @@ jobs:
           run: python3 -m pip install -r requirements_test.txt
 
         - name: "Run tests"
-          working-directory: "custom_components/powerocean/tests"
+          working-directory: "custom_components/powerocean_single_phase/tests"
           run: python3 -m pytest

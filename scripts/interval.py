@@ -36,12 +36,12 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from custom_components.powerocean.api import (  # noqa: E402
+from custom_components.powerocean_single_phase.api import (  # noqa: E402
     EcoflowApi,
     EcoflowApiError,
     EcoflowConnectionError,
 )
-from custom_components.powerocean.devices import MODEL_NAME_MAP  # noqa: E402
+from custom_components.powerocean_single_phase.devices import MODEL_NAME_MAP  # noqa: E402
 
 OUT_DIR = ROOT / "measurements"
 

@@ -26,13 +26,13 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
-COMPONENT = ROOT / "custom_components" / "powerocean"
+COMPONENT = ROOT / "custom_components" / "powerocean_single_phase"
 FIXTURES = COMPONENT / "tests" / "fixtures"
 sys.path.insert(0, str(ROOT))
 
-from custom_components.powerocean.const import DEFAULT_NAME  # noqa: E402
-from custom_components.powerocean.parse import parse  # noqa: E402
-from custom_components.powerocean.types import PowerOceanEndPoint  # noqa: E402
+from custom_components.powerocean_single_phase.const import DEFAULT_NAME  # noqa: E402
+from custom_components.powerocean_single_phase.parse import parse  # noqa: E402
+from custom_components.powerocean_single_phase.types import PowerOceanEndPoint  # noqa: E402
 
 
 def _load(name: str) -> tuple[dict[str, Any], str | None, str | None]:

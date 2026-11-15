@@ -9,7 +9,7 @@ homeassistant:
 logger:
   default: info
   logs:
-    custom_components.powerocean: debug
+    custom_components.powerocean_single_phase: debug
   filters:
     homeassistant.components.go2rtc:
       - "Could not find go2rtc docker binary"

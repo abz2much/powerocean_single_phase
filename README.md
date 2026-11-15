@@ -1,5 +1,5 @@
 <!-- prettier-ignore -->
-# Ecoflow PowerOcean
+# PowerOcean Single Phase
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
 
@@ -174,7 +174,7 @@ The file contains the last response of the EcoFlow cloud and the detected device
 logger:
   default: warn
   logs:
-    custom_components.powerocean: debug
+    custom_components.powerocean_single_phase: debug
 ```
 
 **Recording MQTT messages:** To help decode a function of the EcoFlow app (for example a wallbox or heating rod setting), you can record what the app sends and how the system answers. You need a computer with a copy of this repository and its Python environment (`scripts/setup`).

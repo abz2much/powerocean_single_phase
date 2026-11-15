@@ -42,9 +42,9 @@ import paho.mqtt.client as mqtt
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from custom_components.powerocean.api import EcoflowApi, EcoflowApiError  # noqa: E402
-from custom_components.powerocean.devices import MODEL_NAME_MAP  # noqa: E402
-from custom_components.powerocean.mqtt import protobuf_fields  # noqa: E402
+from custom_components.powerocean_single_phase.api import EcoflowApi, EcoflowApiError  # noqa: E402
+from custom_components.powerocean_single_phase.devices import MODEL_NAME_MAP  # noqa: E402
+from custom_components.powerocean_single_phase.mqtt import protobuf_fields  # noqa: E402
 
 OUT_DIR = ROOT / "measurements"
 CREDENTIALS_FILE = Path.home() / ".config/powerocean/developer.env"

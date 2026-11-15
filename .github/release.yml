@@ -56,7 +56,7 @@ template: |
 
   **Manuell:**
   1. ZIP herunterladen
-  2. `custom_components/powerocean` ersetzen
+  2. `custom_components/powerocean_single_phase` ersetzen
   3. Home Assistant neu starten
 
   ---

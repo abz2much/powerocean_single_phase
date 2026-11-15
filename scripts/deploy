@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Kopiert custom_components/powerocean auf eine Home-Assistant-Instanz.
+# Kopiert custom_components/powerocean_single_phase auf eine Home-Assistant-Instanz.
 # Neustart danach selbst über die Oberfläche auslösen.
 #
 # Voraussetzung: Add-on "Terminal & SSH" oder "Advanced SSH & Web Terminal"
@@ -35,8 +35,8 @@ fi
 
 echo "Kopiere nach ${HA_USER}@${HA_HOST} ..."
 # ssh fragt das Passwort ab.
-# Alte Version nach /config/powerocean.bak sichern, dann neue entpacken.
-tar -C custom_components --exclude=__pycache__ -cf - powerocean \
+# Alte Version nach /config/powerocean_single_phase.bak sichern, dann neue entpacken.
+tar -C custom_components --exclude=__pycache__ -cf - powerocean_single_phase \
     | ssh -p "${HA_PORT}" -o StrictHostKeyChecking=accept-new "${HA_USER}@${HA_HOST}" '
         set -e
         # Die Ordner gehören root; andere Benutzer brauchen sudo ohne Passwort.
@@ -49,9 +49,9 @@ tar -C custom_components --exclude=__pycache__ -cf - powerocean \
             exit 1
         fi
         run mkdir -p /config/custom_components
-        run rm -rf /config/powerocean.bak
-        if [ -d /config/custom_components/powerocean ]; then
-            run mv /config/custom_components/powerocean /config/powerocean.bak
+        run rm -rf /config/powerocean_single_phase.bak
+        if [ -d /config/custom_components/powerocean_single_phase ]; then
+            run mv /config/custom_components/powerocean_single_phase /config/powerocean_single_phase.bak
         fi
         run tar -xf - -C /config/custom_components
     '
