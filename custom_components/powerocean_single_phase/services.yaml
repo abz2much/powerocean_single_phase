@@ -1,0 +1,108 @@
+add_schedule:
+  target:
+    device:
+      integration: powerocean_single_phase
+  fields:
+    type:
+      required: true
+      example: charge
+      selector:
+        select:
+          options:
+            - charge
+            - use_battery
+          translation_key: schedule_type
+    power:
+      required: true
+      example: 3000
+      selector:
+        number:
+          min: 1
+          step: 1
+          mode: box
+          unit_of_measurement: W
+    start:
+      required: true
+      example: "02:00:00"
+      selector:
+        time:
+    end:
+      required: true
+      example: "06:00:00"
+      selector:
+        time:
+    days:
+      example: "[mon, tue, wed, thu, fri]"
+      selector:
+        select:
+          multiple: true
+          options:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
+          translation_key: schedule_days
+    enabled:
+      default: true
+      selector:
+        boolean:
+
+update_schedule:
+  target:
+    entity:
+      integration: powerocean_single_phase
+      domain: switch
+  fields:
+    type:
+      example: charge
+      selector:
+        select:
+          options:
+            - charge
+            - use_battery
+          translation_key: schedule_type
+    power:
+      example: 3000
+      selector:
+        number:
+          min: 1
+          step: 1
+          mode: box
+          unit_of_measurement: W
+    start:
+      example: "02:00:00"
+      selector:
+        time:
+    end:
+      example: "06:00:00"
+      selector:
+        time:
+    days:
+      example: "[mon, tue, wed, thu, fri]"
+      selector:
+        select:
+          multiple: true
+          options:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
+          translation_key: schedule_days
+    enabled:
+      selector:
+        boolean:
+    daily:
+      selector:
+        boolean:
+
+delete_schedule:
+  target:
+    entity:
+      integration: powerocean_single_phase
+      domain: switch

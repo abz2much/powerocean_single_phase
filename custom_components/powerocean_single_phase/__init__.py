@@ -10,6 +10,7 @@ This module sets up the PowerOcean integration, handling:
 - Forwarding entry setups to sensor/platform components.
 
 Functions:
+- async_setup: Register the actions (scheduled tasks).
 - async_setup_entry: Set up a PowerOcean device from a config entry.
 - async_migrate_entry: Migrate older config entries to the latest version.
 - async_remove_config_entry_device: Allow removing devices that are gone.
@@ -29,8 +30,10 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_MQTT,
@@ -46,9 +49,19 @@ from .const import (
 from .coordinator import PowerOceanConfigEntry, PowerOceanCoordinator
 from .datapoints import EDEV_SYSTEM_KEYS, SN_KEYS
 from .ecoflow import HAEcoflowApi
+from .services import async_setup_services
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, _config: ConfigType) -> bool:
+    """Register the actions of the integration."""
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: PowerOceanConfigEntry) -> bool:

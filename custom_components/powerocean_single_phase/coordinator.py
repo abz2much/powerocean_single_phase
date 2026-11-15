@@ -27,7 +27,11 @@ from typing import TYPE_CHECKING, Any, NoReturn
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    HomeAssistantError,
+    ServiceValidationError,
+)
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -563,6 +567,11 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         return value if type(value) is int and value >= 1 else None
 
     @property
+    def schedules_known(self) -> bool:
+        """Return True once the system has sent its list of schedules."""
+        return self._schedules_known
+
+    @property
     def active_schedule(self) -> Schedule | None:
         """Return the schedule the system is using now, None without one."""
         return next((s for s in self.schedules.values() if s.in_use), None)
@@ -807,7 +816,7 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
 
 def _refuse(key: str, **placeholders: int) -> NoReturn:
     """Raise the error for a refused schedule command."""
-    raise HomeAssistantError(
+    raise ServiceValidationError(
         translation_domain=DOMAIN,
         translation_key=key,
         translation_placeholders={

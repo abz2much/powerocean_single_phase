@@ -8,6 +8,7 @@ including data fetching, entity registration, and periodic updates.
 from datetime import UTC, datetime
 from typing import Any
 
+from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -17,13 +18,16 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from .const import PORTAL_URL
+from .const import CONF_MQTT, DOMAIN, PORTAL_URL
 from .coordinator import PowerOceanConfigEntry, PowerOceanCoordinator
+from .schedules import schedule_attributes, schedule_title
 from .types import DISPLAY_PRECISION, SUGGESTED_UNITS, PowerOceanEndPoint
 
 # Updates are fetched centrally by the coordinator
@@ -78,6 +82,15 @@ async def async_setup_entry(
 
     _add_new_entities()
     entry.async_on_unload(coordinator.async_add_listener(_add_new_entities))
+
+    active_schedule = PowerOceanActiveSchedule(coordinator)
+    if entry.options.get(CONF_MQTT, False):
+        async_add_entities([active_schedule])
+    elif entity_id := er.async_get(hass).async_get_entity_id(
+        SENSOR_DOMAIN, DOMAIN, active_schedule.unique_id
+    ):
+        # Switched off: remove it instead of leaving it unavailable
+        er.async_get(hass).async_remove(entity_id)
 
 
 @callback
@@ -187,3 +200,49 @@ class PowerOceanSensor(CoordinatorEntity[PowerOceanCoordinator], SensorEntity):
             if errors:
                 attr["error_details"] = ERROR_DETAILS_HINT
         return attr
+
+
+class PowerOceanActiveSchedule(CoordinatorEntity[PowerOceanCoordinator], SensorEntity):
+    """
+    The scheduled task the system is using now, "none" without one.
+
+    The system switches schedules by itself and reports no change, so this
+    follows the regular reading of the list (every minute).
+    """
+
+    _attr_has_entity_name = True
+    _attr_name = "Active schedule"
+    _attr_icon = "mdi:calendar-clock"
+
+    def __init__(self, coordinator: PowerOceanCoordinator) -> None:
+        """Initialize the sensor of the inverter."""
+        super().__init__(coordinator)
+        sn = coordinator.api.sn
+        self._attr_unique_id = f"{sn}_active_schedule"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, sn)})
+
+    @property
+    def suggested_object_id(self) -> str:
+        """Return a fixed id, so the entity ID does not depend on the name."""
+        return "active_schedule"
+
+    @property
+    def available(self) -> bool:
+        """Return False without MQTT connection or before the list was read."""
+        return (
+            super().available
+            and self.coordinator.mqtt is not None
+            and self.coordinator.schedules_known
+        )
+
+    @property
+    def native_value(self) -> str:
+        """Return what the active schedule does, e.g. "Charge 02:00-06:00 3000 W"."""
+        schedule = self.coordinator.active_schedule
+        return schedule_title(schedule) if schedule else "none"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return id, type, start, end, power, days and in_use of the schedule."""
+        schedule = self.coordinator.active_schedule
+        return schedule_attributes(schedule) if schedule else {}

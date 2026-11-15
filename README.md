@@ -58,6 +58,32 @@ All other values still come from the regular polling. The cloud shows a changed 
 
 
 
+### Scheduled tasks (MQTT)
+
+With the extended connection (MQTT) the integration shows the "Scheduled tasks" of the EcoFlow app and changes them as the app does. The system keeps the schedules itself, moves from one to the next by itself and reports no change. So the integration reads the list every minute, and again after every command.
+
+- **Switches:** one switch for each schedule, named after what it does, e.g. "Charge 02:00-06:00 3000 W". The name follows the schedule; the entity ID (`switch.{device_name}_schedule_{id}`) does not. Attributes: `id`, `type` (`charge` or `use_battery`), `start`, `end`, `power` (W), `days` (`daily` or a list of `mon` to `sun`) and `in_use`. Switching sends the same command as the app.
+- **Active schedule:** a sensor with what the schedule in use does, or `none`. It has the same attributes.
+- **Max schedule power (W):** an option, with no default. Without it `add_schedule` and `update_schedule` refuse. The power must be a whole number from 1 up to this value.
+
+The actions `powerocean_single_phase.add_schedule`, `update_schedule` and `delete_schedule` add, change and delete schedules. Add targets the inverter device; update and delete target a schedule switch.
+
+```yaml
+action: powerocean_single_phase.add_schedule
+target:
+  device_id: <the inverter device>
+data:
+  type: charge          # or use_battery
+  power: 3000
+  start: "02:00:00"
+  end: "06:00:00"
+  days: [mon, tue, wed, thu, fri]   # leave out for every day
+```
+
+`update_schedule` sends the whole schedule and keeps what you leave out. `daily: true` repeats every day (not together with `days`).
+
+Times are in steps of 30 minutes from 00:00 to 23:30; the end may be before the start (over midnight), but not equal to it. The app has no type for exporting to the grid; the system exports by itself when the battery is full. A new schedule gets the next free number, as the app does. If the system does not acknowledge a command, Home Assistant shows an error. What the system does with overlapping schedules, and how many it accepts, is not known; the integration does not check it.
+
 ### Sensors
 Sensors are registered to their device as `sensor.{device_name}_{sensor_name}`, where `sensor_name` is the name of the value in the EcoFlow API. The entity ID does not depend on the language.
 The friendly name is readable, in English, e.g. "State of charge" for `bpSoc`. Values whose meaning is not known yet keep `sensor_name` as friendly name.

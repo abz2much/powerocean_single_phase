@@ -113,6 +113,12 @@
     },
     "schedule_invalid_days": {
       "message": "The days must be daily, or a choice of days from Monday to Sunday."
+    },
+    "schedule_target": {
+      "message": "Choose the inverter of a PowerOcean system as the target."
+    },
+    "schedule_days_and_daily": {
+      "message": "Use either \"Days\" or \"Every day\", not both."
     }
   },
   "entity": {
@@ -883,6 +889,95 @@
     "switch": {
       "battery_save_mode": {
         "name": "Battery save mode"
+      }
+    }
+  },
+  "services": {
+    "add_schedule": {
+      "name": "Add schedule",
+      "description": "Adds a scheduled task to the inverter, as in the EcoFlow app. Needs \"Max schedule power (W)\" in the options. Choose the inverter as the target.",
+      "fields": {
+        "type": {
+          "name": "Type",
+          "description": "Charge the battery, or use the battery to power loads."
+        },
+        "power": {
+          "name": "Power",
+          "description": "Power in W, a whole number from 1 up to \"Max schedule power (W)\"."
+        },
+        "start": {
+          "name": "Start",
+          "description": "Start time, in steps of 30 minutes."
+        },
+        "end": {
+          "name": "End",
+          "description": "End time, in steps of 30 minutes. It may be before the start (over midnight)."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Days of the week. Leave empty for every day."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "Switch the schedule on."
+        }
+      }
+    },
+    "update_schedule": {
+      "name": "Update schedule",
+      "description": "Changes a scheduled task: choose its switch as the target. What you leave empty stays as it is. Needs \"Max schedule power (W)\" in the options.",
+      "fields": {
+        "type": {
+          "name": "Type",
+          "description": "Charge the battery, or use the battery to power loads."
+        },
+        "power": {
+          "name": "Power",
+          "description": "Power in W, a whole number from 1 up to \"Max schedule power (W)\"."
+        },
+        "start": {
+          "name": "Start",
+          "description": "Start time, in steps of 30 minutes."
+        },
+        "end": {
+          "name": "End",
+          "description": "End time, in steps of 30 minutes. It may be before the start (over midnight)."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Days of the week."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "Switch the schedule on or off."
+        },
+        "daily": {
+          "name": "Every day",
+          "description": "Repeat every day. Not together with \"Days\"."
+        }
+      }
+    },
+    "delete_schedule": {
+      "name": "Delete schedule",
+      "description": "Deletes the scheduled task of the selected switch."
+    }
+  },
+  "selector": {
+    "schedule_type": {
+      "options": {
+        "charge": "Charge the battery",
+        "use_battery": "Use the battery to power loads"
+      }
+    },
+    "schedule_days": {
+      "options": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
       }
     }
   }
