@@ -4,8 +4,9 @@ mqtt.py: MQTT connection to the EcoFlow cloud, as the EcoFlow app uses it.
 Optional next to the HTTP polling: the integration connects with the MQTT
 credentials of the account, asks the system for its full state (as the app
 does when it opens) and reads the firmware of its modules from the answer.
-The only settings it sends are the brightness of the LED and the backup
-reserve, as the app does. With the option "live power" it also asks for the
+The settings it sends are the brightness of the LED, the backup reserve, the
+battery save mode and the scheduled tasks (list, switch, add, edit, delete),
+as the app does. With the option "live power" it also asks for the
 energy stream every 20 s, as the app does while it is open; the system then
 reports the power values every ~5 s.
 
@@ -46,6 +47,16 @@ LED_BRIGHTNESS = 119
 # Charge limit, backup reserve and devSoc in one command
 SOC_LIMITS = 112
 BATTERY_SAVE_MODE = 138
+# The scheduled tasks of the app: change (add, edit, switch, delete), read one, list
+SCHEDULE_WRITE = 125
+SCHEDULE_READ = 126
+SCHEDULE_LIST = 127
+# Action of a schedule change
+SCHEDULE_ADD = 1
+SCHEDULE_EDIT = 2
+SCHEDULE_DELETE = 3
+# Start and end of a schedule are 16 bits each in its time
+SCHEDULE_TIME_MASK = 0xFFFF
 # The system reports the energy stream while it is asked for it
 ENERGY_STREAM_REPORT = 33
 ENERGY_STREAM_SWITCH = 97
@@ -258,18 +269,28 @@ def energy_stream_request(serial: str, seq: int) -> bytes:
     return _ems_command(serial, ENERGY_STREAM_SWITCH, _field_varint(1, 1), seq)
 
 
-def _ems_command(serial: str, cmd_id: int, content: bytes, seq: int) -> bytes:
-    """Return a setting command of the app to the EMS."""
+def _ems_command(serial: str, cmd_id: int, content: bytes | None, seq: int) -> bytes:
+    """
+    Return a command of the app to the EMS.
+
+    Without content (the list of schedules) the app sends neither the data
+    (field 1) nor its length (field 10).
+    """
+    data = (
+        ()
+        if content is None
+        else (_field_bytes(1, content), _field_varint(10, len(content)))
+    )
     header = b"".join(
         (
-            _field_bytes(1, content),  # pdata
+            *data[:1],  # pdata
             _field_varint(2, APP),  # src
             _field_varint(3, EMS),  # dest
             _field_varint(4, 1),  # d_src
             _field_varint(5, 1),  # d_dest
             _field_varint(8, EMS),  # cmd_func
             _field_varint(9, cmd_id),  # cmd_id
-            _field_varint(10, len(content)),  # data_len
+            *data[1:],  # data_len
             _field_varint(11, 1),  # need_ack
             _field_varint(14, seq),  # seq
             _field_varint(15, 1),  # product_id
@@ -403,8 +424,172 @@ def energy_stream(part: Part) -> dict[str, float | int]:
 
 
 # -----------------------------
+# Scheduled tasks
+# -----------------------------
+
+
+@dataclass(frozen=True)
+class Schedule:
+    """
+    One scheduled task of the app, e.g. "Charge the battery" at 3000 W.
+
+    Times are minutes since midnight; the end may be before the start (over
+    midnight). `repeat` and `days` are kept as the system has them: daily is
+    repeat 1 and days 0, chosen days is repeat 2 and a bit mask (Monday 1 to
+    Sunday 64); older schedules show repeat 65, whose meaning is unknown.
+    `unknown_2` is field 2 of a schedule in a reply (1 or 2, meaning unknown).
+    """
+
+    schedule_id: int
+    schedule_type: int
+    enabled: bool
+    power: int
+    start: int
+    end: int
+    repeat: int = 1
+    days: int = 0
+    in_use: bool = False
+    unknown_2: int | None = None
+
+
+def pack_schedule_time(start: int, end: int) -> int:
+    """Return the time of a schedule: (end << 16) | start, in minutes."""
+    if not (0 <= start <= SCHEDULE_TIME_MASK and 0 <= end <= SCHEDULE_TIME_MASK):
+        msg = "time of a schedule out of range"
+        raise ValueError(msg)
+    return end << 16 | start
+
+
+def unpack_schedule_time(value: int) -> tuple[int, int]:
+    """Return (start, end) in minutes of the time of a schedule."""
+    return value & SCHEDULE_TIME_MASK, value >> 16
+
+
+def schedule_list_request(serial: str, seq: int) -> bytes:
+    """Return the request for the list of schedules (96/127), as the app sends it."""
+    return _ems_command(serial, SCHEDULE_LIST, None, seq)
+
+
+def schedule_read_request(
+    serial: str, schedule_id: int, schedule_type: int, seq: int
+) -> bytes:
+    """Return the request for one schedule (96/126): field 1 = id, 2 = type."""
+    content = _field_varint(1, schedule_id) + _field_varint(2, schedule_type)
+    return _ems_command(serial, SCHEDULE_READ, content, seq)
+
+
+def schedule_switch_request(
+    serial: str, schedule_id: int, enabled: int, seq: int
+) -> bytes:
+    """
+    Return the command that switches a schedule on or off (96/125).
+
+    As the app sends it: action edit (2) and the id; field 4 = 1 only for on.
+    """
+    content = _field_varint(2, SCHEDULE_EDIT) + _field_varint(3, schedule_id)
+    if enabled:
+        content += _field_varint(4, 1)
+    return _ems_command(serial, SCHEDULE_WRITE, content, seq)
+
+
+def schedule_delete_request(serial: str, schedule_id: int, seq: int) -> bytes:
+    """Return the command that deletes a schedule (96/125): action 3, the id, 4 = 1."""
+    content = (
+        _field_varint(2, SCHEDULE_DELETE)
+        + _field_varint(3, schedule_id)
+        + _field_varint(4, 1)
+    )
+    return _ems_command(serial, SCHEDULE_WRITE, content, seq)
+
+
+def schedule_save_request(
+    serial: str, action: int, schedule: Schedule, seq: int
+) -> bytes:
+    """
+    Return the command that adds (1) or edits (2) a schedule (96/125).
+
+    The app sends the whole schedule, the zeros included (days 0 for daily):
+    2 action, 3 id, 4 = 1 if on (left out if off), 6 type, 7 power in W,
+    8 repeat, 9 days, 10 time.
+    """
+    content = _field_varint(2, action) + _field_varint(3, schedule.schedule_id)
+    if schedule.enabled:
+        content += _field_varint(4, 1)
+    content += (
+        _field_varint(6, schedule.schedule_type)
+        + _field_varint(7, schedule.power)
+        + _field_varint(8, schedule.repeat)
+        + _field_varint(9, schedule.days)
+        + _field_bytes(10, _varint(pack_schedule_time(schedule.start, schedule.end)))
+    )
+    return _ems_command(serial, SCHEDULE_WRITE, content, seq)
+
+
+def parse_schedule(content: bytes) -> Schedule | None:
+    """
+    Return the schedule of a message, None if it lacks the id, type or time.
+
+    Fields: 2 unknown, 3 id, 4 on (absent: off), 5 in use (0 or 1), 6 type,
+    7 power in W, 8 repeat, 9 days, 10 time (a bare varint).
+    """
+    fields = dict(protobuf_fields(content))
+    schedule_id, schedule_type = _int(fields.get(3)), _int(fields.get(6))
+    time = fields.get(10)
+    if schedule_id is None or schedule_type is None or not isinstance(time, bytes):
+        return None
+    start, end = unpack_schedule_time(_read_varint(time, 0)[0])
+    return Schedule(
+        schedule_id=schedule_id,
+        schedule_type=schedule_type,
+        enabled=bool(_int(fields.get(4))),
+        power=_int(fields.get(7)) or 0,
+        start=start,
+        end=end,
+        repeat=_int(fields.get(8)) or 0,
+        days=_int(fields.get(9)) or 0,
+        in_use=bool(_int(fields.get(5))),
+        unknown_2=_int(fields.get(2)),
+    )
+
+
+def parse_schedule_list(content: bytes) -> list[Schedule]:
+    """Return the schedules of a list reply: a field 1 each, incomplete ones skipped."""
+    schedules = (
+        parse_schedule(raw)
+        for number, raw in protobuf_fields(content)
+        if number == 1 and isinstance(raw, bytes)
+    )
+    return [schedule for schedule in schedules if schedule is not None]
+
+
+def parse_schedule_write_reply(content: bytes) -> tuple[int | None, int | None]:
+    """Return (id, type) of the reply to a change; the type only after add or edit."""
+    fields = dict(protobuf_fields(content))
+    return _int(fields.get(2)), _int(fields.get(1))
+
+
+def schedule_list(part: Part) -> list[Schedule] | None:
+    """Return the schedules of a list reply (96/127), None for another message."""
+    if (part.cmd_func, part.cmd_id) != (EMS, SCHEDULE_LIST):
+        return None
+    return parse_schedule_list(part.content)
+
+
+def schedule_single(part: Part) -> Schedule | None:
+    """Return the schedule of a reply to a single read (96/126), else None."""
+    if (part.cmd_func, part.cmd_id) != (EMS, SCHEDULE_READ):
+        return None
+    raw = dict(protobuf_fields(part.content)).get(1)
+    return parse_schedule(raw) if isinstance(raw, bytes) else None
+
+
+# -----------------------------
 # Connection
 # -----------------------------
+
+
+def _ignore(_value: Any) -> None:
+    """Do nothing: the callback is not wanted."""
 
 
 @dataclass(frozen=True)
@@ -419,6 +604,10 @@ class MqttCallbacks:
     on_ack: Callable[[int], None]
     # Energy stream report: power values, by datapoint
     on_energy_stream: Callable[[dict[str, float | int]], None]
+    # The list of schedules (96/127), after our request or the app's
+    on_schedules: Callable[[list[Schedule]], None] = _ignore
+    # One schedule (96/126)
+    on_schedule: Callable[[Schedule], None] = _ignore
 
 
 class PowerOceanMqtt:
@@ -520,6 +709,46 @@ class PowerOceanMqtt:
             qos=1,
         )
 
+    def request_schedules(self) -> None:
+        """Ask the system for the list of its schedules (answer on set_reply)."""
+        self.client.publish(
+            f"{self._property_topic}/set",
+            schedule_list_request(self.serial, new_seq()),
+            qos=1,
+        )
+
+    def request_schedule(self, schedule_id: int, schedule_type: int) -> None:
+        """Ask the system for one schedule (answer on set_reply)."""
+        self.client.publish(
+            f"{self._property_topic}/set",
+            schedule_read_request(self.serial, schedule_id, schedule_type, new_seq()),
+            qos=1,
+        )
+
+    def set_schedule_enabled(self, schedule_id: int, enabled: int, seq: int) -> None:
+        """Switch a schedule on (1) or off (0), acknowledged with `seq`."""
+        self.client.publish(
+            f"{self._property_topic}/set",
+            schedule_switch_request(self.serial, schedule_id, enabled, seq),
+            qos=1,
+        )
+
+    def save_schedule(self, action: int, schedule: Schedule, seq: int) -> None:
+        """Add (SCHEDULE_ADD) or edit (SCHEDULE_EDIT) a schedule, ack with `seq`."""
+        self.client.publish(
+            f"{self._property_topic}/set",
+            schedule_save_request(self.serial, action, schedule, seq),
+            qos=1,
+        )
+
+    def delete_schedule(self, schedule_id: int, seq: int) -> None:
+        """Delete a schedule, acknowledged with `seq`."""
+        self.client.publish(
+            f"{self._property_topic}/set",
+            schedule_delete_request(self.serial, schedule_id, seq),
+            qos=1,
+        )
+
     def _on_connect(
         self,
         client: mqtt.Client,
@@ -537,6 +766,17 @@ class PowerOceanMqtt:
         # Also after a reconnect: the system may have restarted (update)
         self.request_full_state()
 
+    def _on_reply(self, part: Part) -> None:
+        """Hand over a reply: schedules first, then the acknowledgement."""
+        # Schedules first: state is there when the waiting command goes on
+        if (schedules := schedule_list(part)) is not None:
+            self.callbacks.on_schedules(schedules)
+        elif (single := schedule_single(part)) is not None:
+            self.callbacks.on_schedule(single)
+        # By seq: only the integration's own commands wait for it
+        if part.seq is not None:
+            self.callbacks.on_ack(part.seq)
+
     def _on_message(
         self, _client: mqtt.Client, _userdata: Any, message: mqtt.MQTTMessage
     ) -> None:
@@ -547,9 +787,7 @@ class PowerOceanMqtt:
                 if command == (IOT, MODULE_INFO) and part.content:
                     self.callbacks.on_modules(parse_module_info(part.content))
                 elif reply:
-                    # By seq: only the integration's own commands wait for it
-                    if part.seq is not None:
-                        self.callbacks.on_ack(part.seq)
+                    self._on_reply(part)
                 elif settings := change_report_settings(part):
                     self.callbacks.on_settings(settings)
                 elif values := energy_stream(part):
