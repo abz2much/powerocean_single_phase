@@ -92,7 +92,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_CHANGE_REPORT_bpSoc",
@@ -704,7 +704,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Batterie zu Netz",
+      "description": "Battery to grid",
       "friendly_name": "batteryToGrid",
       "icon": "mdi:transmission-tower-export",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_batteryToGrid",
@@ -725,7 +725,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Batterie zu Haus",
+      "description": "Battery to house",
       "friendly_name": "batteryToHouse",
       "icon": "mdi:battery-arrow-up",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_batteryToHouse",
@@ -746,7 +746,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Netzleistung",
+      "description": "Grid power",
       "friendly_name": "gridPower",
       "icon": "mdi:transmission-tower-import",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_gridPower",
@@ -767,7 +767,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Netz zu Batterie",
+      "description": "Grid to battery",
       "friendly_name": "gridToBattery",
       "icon": "mdi:battery-arrow-down",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_gridToBattery",
@@ -788,7 +788,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Netz zu Haus",
+      "description": "Grid to house",
       "friendly_name": "gridToHouse",
       "icon": "mdi:transmission-tower-import",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_gridToHouse",
@@ -809,7 +809,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Hausnetz (berechnet)",
+      "description": "House grid (calculated)",
       "friendly_name": "housePower",
       "icon": "mdi:home-lightning-bolt",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_housePower",
@@ -1032,7 +1032,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Solar zu Batterie",
+      "description": "Solar to battery",
       "friendly_name": "solarToBattery",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_solarToBattery",
@@ -1053,7 +1053,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Solar zu Netz",
+      "description": "Solar to grid",
       "friendly_name": "solarToGrid",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_solarToGrid",
@@ -1074,7 +1074,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Solar zu Haus",
+      "description": "Solar to house",
       "friendly_name": "solarToHouse",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_EMS_HEARTBEAT_mpptHeartBeat_solarToHouse",
@@ -1532,7 +1532,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Aktive Fehler",
+      "description": "Active errors",
       "friendly_name": "errorCount",
       "icon": "mdi:alert-circle-outline",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_ERROR_CHANGE_REPORT_errorCount",
@@ -1549,7 +1549,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Batterieleistung",
+      "description": "Battery power",
       "friendly_name": "bpPwr",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_bpPwr",
@@ -1570,7 +1570,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_bpSoc",
@@ -1591,7 +1591,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Solarertrag",
+      "description": "Solar yield",
       "friendly_name": "mpptPwr",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_mpptPwr",
@@ -1675,7 +1675,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Stromnetz",
+      "description": "Power grid",
       "friendly_name": "sysGridPwr",
       "icon": "mdi:transmission-tower-import",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_sysGridPwr",
@@ -1696,7 +1696,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Hausnetz",
+      "description": "House grid",
       "friendly_name": "sysLoadPwr",
       "icon": "mdi:home-lightning-bolt",
       "internal_unique_id": "SN_INVERTERBOX01_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_sysLoadPwr",
@@ -1720,7 +1720,7 @@
       ]
     },
     "sensors": {
-      "description": "Batterieleistung",
+      "description": "Battery power",
       "friendly_name": "bpPwr",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX01_all_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_bpPwr",
@@ -1744,7 +1744,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX01_all_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_bpSoc",
@@ -1768,7 +1768,7 @@
       ]
     },
     "sensors": {
-      "description": "Solarertrag",
+      "description": "Solar yield",
       "friendly_name": "mpptPwr",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX01_all_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_mpptPwr",
@@ -1864,7 +1864,7 @@
       ]
     },
     "sensors": {
-      "description": "Stromnetz",
+      "description": "Power grid",
       "friendly_name": "sysGridPwr",
       "icon": "mdi:transmission-tower-import",
       "internal_unique_id": "SN_INVERTERBOX01_all_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_sysGridPwr",
@@ -1888,7 +1888,7 @@
       ]
     },
     "sensors": {
-      "description": "Hausnetz",
+      "description": "House grid",
       "friendly_name": "sysLoadPwr",
       "icon": "mdi:home-lightning-bolt",
       "internal_unique_id": "SN_INVERTERBOX01_all_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_sysLoadPwr",
@@ -1909,7 +1909,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Batterieleistung",
+      "description": "Battery power",
       "friendly_name": "bpPwr",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX01_bpPwr",
@@ -1951,7 +1951,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Solarertrag",
+      "description": "Solar yield",
       "friendly_name": "mpptPwr",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX01_mpptPwr",
@@ -2031,7 +2031,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Stromnetz",
+      "description": "Power grid",
       "friendly_name": "sysGridPwr",
       "icon": "mdi:transmission-tower-import",
       "internal_unique_id": "SN_INVERTERBOX01_sysGridPwr",
@@ -2069,7 +2069,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Hausnetz",
+      "description": "House grid",
       "friendly_name": "sysLoadPwr",
       "icon": "mdi:home-lightning-bolt",
       "internal_unique_id": "SN_INVERTERBOX01_sysLoadPwr",
@@ -2255,7 +2255,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_CHANGE_REPORT_bpSoc",
@@ -2867,7 +2867,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Batterie zu Netz",
+      "description": "Battery to grid",
       "friendly_name": "batteryToGrid",
       "icon": "mdi:transmission-tower-export",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_batteryToGrid",
@@ -2888,7 +2888,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Batterie zu Haus",
+      "description": "Battery to house",
       "friendly_name": "batteryToHouse",
       "icon": "mdi:battery-arrow-up",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_batteryToHouse",
@@ -2909,7 +2909,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Netzleistung",
+      "description": "Grid power",
       "friendly_name": "gridPower",
       "icon": "mdi:transmission-tower-import",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_gridPower",
@@ -2930,7 +2930,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Netz zu Batterie",
+      "description": "Grid to battery",
       "friendly_name": "gridToBattery",
       "icon": "mdi:battery-arrow-down",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_gridToBattery",
@@ -2951,7 +2951,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Netz zu Haus",
+      "description": "Grid to house",
       "friendly_name": "gridToHouse",
       "icon": "mdi:transmission-tower-import",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_gridToHouse",
@@ -2972,7 +2972,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Hausnetz (berechnet)",
+      "description": "House grid (calculated)",
       "friendly_name": "housePower",
       "icon": "mdi:home-lightning-bolt",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_housePower",
@@ -3195,7 +3195,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Solar zu Batterie",
+      "description": "Solar to battery",
       "friendly_name": "solarToBattery",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_solarToBattery",
@@ -3216,7 +3216,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Solar zu Netz",
+      "description": "Solar to grid",
       "friendly_name": "solarToGrid",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_solarToGrid",
@@ -3237,7 +3237,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Solar zu Haus",
+      "description": "Solar to house",
       "friendly_name": "solarToHouse",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_EMS_HEARTBEAT_mpptHeartBeat_solarToHouse",
@@ -3695,7 +3695,7 @@
       "via_device": null
     },
     "sensors": {
-      "description": "Aktive Fehler",
+      "description": "Active errors",
       "friendly_name": "errorCount",
       "icon": "mdi:alert-circle-outline",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_ERROR_CHANGE_REPORT_errorCount",
@@ -3715,7 +3715,7 @@
       ]
     },
     "sensors": {
-      "description": "Batterieleistung",
+      "description": "Battery power",
       "friendly_name": "bpPwr",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_bpPwr",
@@ -3739,7 +3739,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_bpSoc",
@@ -3763,7 +3763,7 @@
       ]
     },
     "sensors": {
-      "description": "Solarertrag",
+      "description": "Solar yield",
       "friendly_name": "mpptPwr",
       "icon": "mdi:solar-power",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_mpptPwr",
@@ -3859,7 +3859,7 @@
       ]
     },
     "sensors": {
-      "description": "Stromnetz",
+      "description": "Power grid",
       "friendly_name": "sysGridPwr",
       "icon": "mdi:transmission-tower-import",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_sysGridPwr",
@@ -3883,7 +3883,7 @@
       ]
     },
     "sensors": {
-      "description": "Hausnetz",
+      "description": "House grid",
       "friendly_name": "sysLoadPwr",
       "icon": "mdi:home-lightning-bolt",
       "internal_unique_id": "SN_INVERTERBOX02_JTS1_PARALLEL_ENERGY_STREAM_REPORT_paraEnergyStream_sysLoadPwr",
@@ -3995,7 +3995,7 @@
       ]
     },
     "sensors": {
-      "description": "Batteriestrom",
+      "description": "Battery current",
       "friendly_name": "bpAmp",
       "icon": null,
       "internal_unique_id": "SN_M_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpAmp",
@@ -4087,7 +4087,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezyklen",
+      "description": "Charge cycles",
       "friendly_name": "bpCycles",
       "icon": "mdi:repeat",
       "internal_unique_id": "SN_M_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpCycles",
@@ -4247,7 +4247,7 @@
       ]
     },
     "sensors": {
-      "description": "Batterieleistung",
+      "description": "Battery power",
       "friendly_name": "bpPwr",
       "icon": null,
       "internal_unique_id": "SN_M_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpPwr",
@@ -4343,7 +4343,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_M_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpSoc",
@@ -4435,7 +4435,7 @@
       ]
     },
     "sensors": {
-      "description": "Batteriespannung",
+      "description": "Battery voltage",
       "friendly_name": "bpVol",
       "icon": null,
       "internal_unique_id": "SN_M_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpVol",
@@ -4567,7 +4567,7 @@
       ]
     },
     "sensors": {
-      "description": "Batteriestrom",
+      "description": "Battery current",
       "friendly_name": "bpAmp",
       "icon": null,
       "internal_unique_id": "SN_M_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpAmp",
@@ -4659,7 +4659,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezyklen",
+      "description": "Charge cycles",
       "friendly_name": "bpCycles",
       "icon": "mdi:repeat",
       "internal_unique_id": "SN_M_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpCycles",
@@ -4819,7 +4819,7 @@
       ]
     },
     "sensors": {
-      "description": "Batterieleistung",
+      "description": "Battery power",
       "friendly_name": "bpPwr",
       "icon": null,
       "internal_unique_id": "SN_M_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpPwr",
@@ -4915,7 +4915,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_M_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpSoc",
@@ -5007,7 +5007,7 @@
       ]
     },
     "sensors": {
-      "description": "Batteriespannung",
+      "description": "Battery voltage",
       "friendly_name": "bpVol",
       "icon": null,
       "internal_unique_id": "SN_M_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpVol",
@@ -5139,7 +5139,7 @@
       ]
     },
     "sensors": {
-      "description": "Batteriestrom",
+      "description": "Battery current",
       "friendly_name": "bpAmp",
       "icon": null,
       "internal_unique_id": "SN_S_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpAmp",
@@ -5231,7 +5231,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezyklen",
+      "description": "Charge cycles",
       "friendly_name": "bpCycles",
       "icon": "mdi:repeat",
       "internal_unique_id": "SN_S_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpCycles",
@@ -5391,7 +5391,7 @@
       ]
     },
     "sensors": {
-      "description": "Batterieleistung",
+      "description": "Battery power",
       "friendly_name": "bpPwr",
       "icon": null,
       "internal_unique_id": "SN_S_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpPwr",
@@ -5487,7 +5487,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_S_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpSoc",
@@ -5579,7 +5579,7 @@
       ]
     },
     "sensors": {
-      "description": "Batteriespannung",
+      "description": "Battery voltage",
       "friendly_name": "bpVol",
       "icon": null,
       "internal_unique_id": "SN_S_BATTERIEPACK01_JTS1_BP_STA_REPORT_bpVol",
@@ -5711,7 +5711,7 @@
       ]
     },
     "sensors": {
-      "description": "Batteriestrom",
+      "description": "Battery current",
       "friendly_name": "bpAmp",
       "icon": null,
       "internal_unique_id": "SN_S_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpAmp",
@@ -5803,7 +5803,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezyklen",
+      "description": "Charge cycles",
       "friendly_name": "bpCycles",
       "icon": "mdi:repeat",
       "internal_unique_id": "SN_S_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpCycles",
@@ -5963,7 +5963,7 @@
       ]
     },
     "sensors": {
-      "description": "Batterieleistung",
+      "description": "Battery power",
       "friendly_name": "bpPwr",
       "icon": null,
       "internal_unique_id": "SN_S_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpPwr",
@@ -6059,7 +6059,7 @@
       ]
     },
     "sensors": {
-      "description": "Ladezustand der Batterie",
+      "description": "Battery state of charge",
       "friendly_name": "bpSoc",
       "icon": null,
       "internal_unique_id": "SN_S_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpSoc",
@@ -6151,7 +6151,7 @@
       ]
     },
     "sensors": {
-      "description": "Batteriespannung",
+      "description": "Battery voltage",
       "friendly_name": "bpVol",
       "icon": null,
       "internal_unique_id": "SN_S_BATTERIEPACK02_JTS1_BP_STA_REPORT_bpVol",

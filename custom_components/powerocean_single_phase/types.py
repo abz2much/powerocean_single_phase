@@ -396,33 +396,33 @@ class SensorMetaHelper:
         """Get description from key name using a dictionary mapping."""
         # Dictionary for key-to-description mapping
         description_mapping = {
-            "sysLoadPwr": "Hausnetz",
-            "housePower": "Hausnetz (berechnet)",
-            "sysGridPwr": "Stromnetz",
-            "gridPower": "Netzleistung",
-            "gridToBattery": "Netz zu Batterie",
-            "gridToHouse": "Netz zu Haus",
-            "batteryToHouse": "Batterie zu Haus",
-            "batteryToGrid": "Batterie zu Netz",
-            "solarToBattery": "Solar zu Batterie",
-            "solarToGrid": "Solar zu Netz",
-            "solarToHouse": "Solar zu Haus",
-            "mpptPwr": "Solarertrag",
-            "bpPwr": "Batterieleistung",
-            "bpSoc": "Ladezustand der Batterie",
+            "sysLoadPwr": "House grid",
+            "housePower": "House grid (calculated)",
+            "sysGridPwr": "Power grid",
+            "gridPower": "Grid power",
+            "gridToBattery": "Grid to battery",
+            "gridToHouse": "Grid to house",
+            "batteryToHouse": "Battery to house",
+            "batteryToGrid": "Battery to grid",
+            "solarToBattery": "Solar to battery",
+            "solarToGrid": "Solar to grid",
+            "solarToHouse": "Solar to house",
+            "mpptPwr": "Solar yield",
+            "bpPwr": "Battery power",
+            "bpSoc": "Battery state of charge",
             "online": "Online",
             "systemName": "System Name",
-            "createTime": "Installations Datum",
-            "bpVol": "Batteriespannung",
-            "bpAmp": "Batteriestrom",
-            "bpCycles": "Ladezyklen",
-            "bpTemp": "Temperatur der Batteriezellen",
-            "errorCount": "Aktive Fehler",
+            "createTime": "Installation date",
+            "bpVol": "Battery voltage",
+            "bpAmp": "Battery current",
+            "bpCycles": "Charge cycles",
+            "bpTemp": "Battery cell temperature",
+            "errorCount": "Active errors",
             # Meaning not published by EcoFlow; observed: 0 by day, 2 at night
             **{
                 f"mppt{n}FaultCode": (
-                    f"Fehlercode PV-String {n} (Bedeutung nicht veröffentlicht; "
-                    "nachts meist 2)"
+                    f"Error code PV string {n} (meaning not published; "
+                    "usually 2 at night)"
                 )
                 for n in range(1, 5)
             },

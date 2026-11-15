@@ -68,7 +68,7 @@ Each sensor has these attributes:
 - `product_serial`: serial number of the device the value belongs to
 
 ### Active errors
-The sensor `errorCount` (description "Aktive Fehler") of each inverter counts the errors the system currently reports, as the app shows them: from the EMS, the inverter (PCS) and the battery packs.
+The sensor `errorCount` (description "Active errors") of each inverter counts the errors the system currently reports, as the app shows them: from the EMS, the inverter (PCS) and the battery packs.
 Its attribute `errors` lists each active error with module, serial number of the module and error code; for known codes also name and level (Info, Warning, Error):
 
 ```yaml

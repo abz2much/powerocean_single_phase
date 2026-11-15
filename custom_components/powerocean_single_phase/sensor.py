@@ -30,7 +30,7 @@ from .types import DISPLAY_PRECISION, SUGGESTED_UNITS, PowerOceanEndPoint
 PARALLEL_UPDATES = 0
 
 # Cause and solution of error codes are only available in the portal
-ERROR_DETAILS_HINT = f"Ursache und Lösung im EcoFlow-Webportal: {PORTAL_URL}"
+ERROR_DETAILS_HINT = f"Cause and solution in the EcoFlow web portal: {PORTAL_URL}"
 
 
 async def async_setup_entry(
