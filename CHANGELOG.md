@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
 ### Breaking changes
 
@@ -28,9 +28,9 @@
   - A sensor **Active schedule** with the schedule in use, or `none`.
   - The actions `powerocean_single_phase.add_schedule` (the field
     `device_id`: the inverter device), `update_schedule` and
-    `delete_schedule` (target: a schedule switch). Times are in steps of 30 minutes; each command waits for the
-    acknowledgement of the system and for its list to show the change, and
-    gives an error if it does not.
+    `delete_schedule` (target: a schedule switch). Times are in steps of 30
+    minutes. Each command waits for the acknowledgement of the system and for
+    its list to show the change, and gives an error if it does not.
 - **Option "Max schedule power (W)":** a whole number from 1, with no
   default. Without it, `add_schedule` and `update_schedule` refuse. The
   power of a schedule can be at most this value.
@@ -47,8 +47,11 @@ so not checked: which power the inverter allows.
   number.
 - The licence names niltrip and abz2much; the README has a "Credit and
   licence" section. `scripts/deploy` copies the new folder. The comments,
-  docstrings and the texts of the scripts are English. The text of
-  `.github/release.yml` is still German.
+  docstrings and the texts of the scripts are English.
+- One CI workflow (`ci.yml`) runs ruff, pytest, hassfest and HACS validation.
+  A release is published when a pull request that changes the version in
+  `manifest.json` is merged and CI passes. The description of the pull request
+  is the release notes. The German release notes template is removed.
 - The README is short now. The details moved to pages in `docs/`, and the
   screenshots to `docs/images/`. The script `check_response.py` moved from
   `documentation/` to `scripts/`.
