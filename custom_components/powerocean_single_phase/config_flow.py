@@ -180,7 +180,7 @@ class PowerOceanConfigFlow(ConfigFlow, domain=DOMAIN):
     MINOR_VERSION = 5
 
     def __init__(self) -> None:
-        """Instanzvariablen für den Flow-Verlauf."""
+        """Initialize the state kept between the steps."""
         self._cloud_data: dict[str, Any] = {}
 
     async def _async_validate(self, data: dict[str, Any]) -> dict[str, str]:
@@ -203,13 +203,13 @@ class PowerOceanConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Unique ID zuerst prüfen, damit Duplikate keinen Login auslösen
+            # Check the unique ID first, so duplicates do not trigger a login
             await self.async_set_unique_id(f"PowerOcean {user_input[CONF_DEVICE_ID]}")
             self._abort_if_unique_id_configured()
 
             errors = await self._async_validate(user_input)
             if not errors:
-                # Daten für Schritt 2 zwischenspeichern
+                # Keep the data for step 2
                 self._cloud_data = user_input
                 return await self.async_step_device_options()
 
@@ -224,7 +224,7 @@ class PowerOceanConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_device_options(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Schritt 2: Zusätzliche Optionen abfragen."""
+        """Step 2: ask for the additional options."""
         if user_input is not None:
             model_name = MODEL_NAME_MAP[
                 PowerOceanModel(self._cloud_data[CONF_MODEL_ID])
@@ -251,19 +251,19 @@ class PowerOceanConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """
-        Standard-Reconfigure.
+        Handle the standard reconfigure step.
 
-        Bestehende Instanz korrigieren (z.B. Passwort, E-Mail, Modell).
-        Die Seriennummer muss gleich bleiben: alle Entities hängen an ihr,
-        ein anderes Gerät gehört in einen eigenen Config Entry.
+        Correct an existing instance (e.g. password, e-mail, model).
+        The serial number must stay the same: all entities depend on it,
+        and another device belongs in its own config entry.
         """
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Entspricht _abort_if_unique_id_mismatch(reason="wrong_device"),
-            # vergleicht aber die Seriennummer direkt: ältere Entries haben
-            # noch Unique IDs in früheren Formaten ("PowerOcean_<SN>" u.a.).
+            # Same as _abort_if_unique_id_mismatch(reason="wrong_device"), but
+            # compares the serial number directly: older entries still have
+            # unique IDs in earlier formats ("PowerOcean_<SN>" and others).
             if user_input[CONF_DEVICE_ID] != entry.data[CONF_DEVICE_ID]:
                 return self.async_abort(reason="wrong_device")
 
@@ -354,7 +354,7 @@ class PowerOceanOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Erster Schritt des Options Flows."""
+        """First step of the options flow."""
         if user_input is not None:
             return self.async_create_entry(
                 data={

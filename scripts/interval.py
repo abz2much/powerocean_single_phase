@@ -104,7 +104,7 @@ async def login(api: EcoflowApi) -> None:
         try:
             await api.async_authorize()
         except EcoflowConnectionError as err:
-            print(f"Anmeldung: {err}, neuer Versuch in 10 s")
+            print(f"Login: {err}, trying again in 10 s")
             await asyncio.sleep(10)
         else:
             return
@@ -119,7 +119,7 @@ async def measure(args: argparse.Namespace, api: EcoflowApi, out: Path) -> None:
     end = start + args.minutes * 60
 
     await login(api)
-    print(f"Angemeldet ({api.api_host}). Messung läuft, Abbruch mit Strg+C.\n")
+    print(f"Logged in ({api.api_host}). Measuring, stop with Ctrl+C.\n")
 
     with out.open("w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file, delimiter=";")
@@ -133,10 +133,10 @@ async def measure(args: argparse.Namespace, api: EcoflowApi, out: Path) -> None:
                     response = await api.fetch_raw()
                 except EcoflowConnectionError as err:
                     failures += 1
-                    print(f"{poll_time}  Fehler: {err}")
+                    print(f"{poll_time}  Error: {err}")
                 except EcoflowApiError as err:
                     failures += 1
-                    print(f"{poll_time}  Fehler: {err}, melde neu an")
+                    print(f"{poll_time}  Error: {err}, logging in again")
                     await login(api)
                 else:
                     durations.append(time.monotonic() - now)
@@ -172,10 +172,10 @@ async def measure(args: argparse.Namespace, api: EcoflowApi, out: Path) -> None:
                             ]
                         )
                     file.flush()
-                    print(f"{poll_time}  geändert: {', '.join(changed) or '-'}")
+                    print(f"{poll_time}  changed: {', '.join(changed) or '-'}")
                 await asyncio.sleep(max(0.0, now + args.every - time.monotonic()))
         except (KeyboardInterrupt, asyncio.CancelledError):
-            print("\nAbgebrochen.")
+            print("\nStopped.")
 
     summary(logs, durations, failures, time.monotonic() - start, args.every)
 
@@ -189,13 +189,13 @@ def summary(
 ) -> None:
     """Print the time between changes per report."""
     print(
-        f"\nDauer {elapsed / 60:.1f} min, Abfrage alle {every:g} s, "
-        f"{len(durations)} Antworten, {failures} Fehler, "
-        f"Antwortzeit {statistics.median(durations) if durations else 0:.1f} s"
+        f"\nDuration {elapsed / 60:.1f} min, poll every {every:g} s, "
+        f"{len(durations)} responses, {failures} errors, "
+        f"response time {statistics.median(durations) if durations else 0:.1f} s"
     )
-    print("Zeit zwischen Änderungen: Median (Minimum-Maximum)\n")
+    print("Time between changes: median (minimum-maximum)\n")
     width = max((len(name) for name in logs), default=10)
-    print(f"{'Report':<{width}}  {'Änderungen':>10}  {'Inhalt':<18}  updateTime")
+    print(f"{'Report':<{width}}  {'Changes':>10}  {'Content':<18}  updateTime")
     for name in sorted(logs, key=lambda n: (-len(logs[n].content_changes), n)):
         log = logs[name]
         print(
@@ -208,15 +208,15 @@ def summary(
 def main() -> None:
     """Ask for credentials and run the measurement."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    parser.add_argument("--minutes", type=float, default=15, help="Dauer")
-    parser.add_argument("--every", type=float, default=10, help="Sekunden")
+    parser.add_argument("--minutes", type=float, default=15, help="duration in minutes")
+    parser.add_argument("--every", type=float, default=10, help="seconds between polls")
     args = parser.parse_args()
 
-    serial = input("Seriennummer des Wechselrichters: ").strip()
-    username = input("E-Mail des EcoFlow-Kontos: ").strip()
-    password = getpass.getpass("Passwort: ")
+    serial = input("Serial number of the inverter: ").strip()
+    username = input("E-mail of the EcoFlow account: ").strip()
+    password = getpass.getpass("Password: ")
     models = ", ".join(f"{code} {name}" for code, name in MODEL_NAME_MAP.items())
-    variant = input(f"Modell ({models}) [83]: ").strip() or "83"
+    variant = input(f"Model ({models}) [83]: ").strip() or "83"
 
     OUT_DIR.mkdir(exist_ok=True)
     out = OUT_DIR / f"interval-{datetime.now().astimezone():%Y%m%d-%H%M%S}.csv"

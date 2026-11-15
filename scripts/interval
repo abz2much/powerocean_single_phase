@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Misst, wie oft die EcoFlow-Cloud die Daten der Anlage aktualisiert.
-# Fragt Seriennummer, E-Mail und Passwort ab (werden nicht gespeichert).
-# Beispiel: scripts/interval                       15 Minuten, alle 10 Sekunden
+# Measures how often the EcoFlow cloud updates the data of the system.
+# Asks for the serial number, e-mail and password (not stored).
+# Example: scripts/interval                       15 minutes, every 10 seconds
 #           scripts/interval --minutes 120
 
 set -e

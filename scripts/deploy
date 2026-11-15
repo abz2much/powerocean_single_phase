@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Kopiert custom_components/powerocean_single_phase auf eine Home-Assistant-Instanz.
-# Neustart danach selbst über die Oberfläche auslösen.
+# Copies custom_components/powerocean_single_phase to a Home Assistant instance.
+# Restart Home Assistant yourself afterwards, in the user interface.
 #
-# Voraussetzung: Add-on "Terminal & SSH" oder "Advanced SSH & Web Terminal"
-# ist in Home Assistant installiert und gestartet.
+# Requirement: the app "Terminal & SSH" or "Advanced SSH & Web Terminal"
+# is installed and started in Home Assistant.
 #
-# Aufruf: scripts/deploy [adresse]   (ohne Adresse wird nachgefragt)
+# Usage: scripts/deploy [address]   (without an address it asks for one)
 
 set -e
 
@@ -15,37 +15,38 @@ HA_HOST="$1"
 HA_PORT="22"
 
 if [[ -z "${HA_HOST}" ]]; then
-    read -r -p "Adresse der Home-Assistant-Instanz: " HA_HOST
+    read -r -p "Address of the Home Assistant instance: " HA_HOST
 fi
 if [[ -z "${HA_HOST}" ]]; then
-    echo "Keine Adresse angegeben."
+    echo "No address given."
     exit 1
 fi
 
-read -r -p "Benutzer für ${HA_HOST}: " HA_USER
+read -r -p "User for ${HA_HOST}: " HA_USER
 if [[ -z "${HA_USER}" ]]; then
-    echo "Kein Benutzer angegeben."
+    echo "No user given."
     exit 1
 fi
 
 echo "Branch: $(git branch --show-current) ($(git rev-parse --short HEAD))"
 if [[ -n "$(git status --porcelain custom_components)" ]]; then
-    echo "Hinweis: nicht committete Änderungen werden mitkopiert."
+    echo "Note: uncommitted changes are copied too."
 fi
 
-echo "Kopiere nach ${HA_USER}@${HA_HOST} ..."
-# ssh fragt das Passwort ab.
-# Alte Version nach /config/powerocean_single_phase.bak sichern, dann neue entpacken.
+echo "Copying to ${HA_USER}@${HA_HOST} ..."
+# ssh asks for the password.
+# Back up the old version to /config/powerocean_single_phase.bak, then
+# unpack the new one.
 tar -C custom_components --exclude=__pycache__ -cf - powerocean_single_phase \
     | ssh -p "${HA_PORT}" -o StrictHostKeyChecking=accept-new "${HA_USER}@${HA_HOST}" '
         set -e
-        # Die Ordner gehören root; andere Benutzer brauchen sudo ohne Passwort.
-        # Funktion statt Variable, weil zsh "$SUDO" nicht in Wörter aufteilt.
+        # The folders belong to root; other users need sudo without a password.
+        # A function instead of a variable, because zsh does not split "$SUDO".
         run() {
             if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi
         }
         if [ "$(id -u)" -ne 0 ] && ! sudo -n true 2>/dev/null; then
-            echo "sudo ohne Passwort nicht möglich - im SSH-Add-on Benutzer root eintragen."
+            echo "sudo without a password is not possible - enter the user root in the SSH app."
             exit 1
         fi
         run mkdir -p /config/custom_components
@@ -56,5 +57,5 @@ tar -C custom_components --exclude=__pycache__ -cf - powerocean_single_phase \
         run tar -xf - -C /config/custom_components
     '
 
-echo "Fertig. Jetzt Home Assistant neu starten:"
-echo "Einstellungen -> System -> oben rechts Neustart"
+echo "Done. Now restart Home Assistant:"
+echo "Settings -> System -> Restart (top right)"

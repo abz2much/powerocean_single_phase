@@ -236,17 +236,17 @@ def connect(
         client: mqtt.Client, _data: Any, _flags: Any, reason: Any, _props: Any
     ) -> None:
         if reason.is_failure:
-            print(f"Verbindung abgelehnt: {reason}")
+            print(f"Connection refused: {reason}")
             return
         for topic in topics:
             client.subscribe(topic, qos=1)
-        print("Verbunden. Jetzt die App öffnen und bedienen.")
+        print("Connected. Now open the app and use it.")
         recorder.note("(connected)")
 
     def on_disconnect(
         _client: mqtt.Client, _data: Any, _flags: Any, reason: Any, _props: Any
     ) -> None:
-        print(f"Verbindung getrennt ({reason}), verbinde neu …")
+        print(f"Disconnected ({reason}), reconnecting …")
         recorder.note("(disconnected)")
 
     def on_message(_client: mqtt.Client, _data: Any, message: Any) -> None:
@@ -270,7 +270,7 @@ async def account(api: EcoflowApi) -> tuple[str, dict[str, Any]]:
     finally:
         await api.close()
     if not api.user_id:
-        msg = "Die Anmeldung lieferte keine User-ID."
+        msg = "The login returned no user ID."
         raise EcoflowApiError(msg)
     return api.user_id, credentials
 
@@ -281,14 +281,14 @@ def saved_credentials() -> dict[str, str]:
     saved: dict[str, str] = {}
     if CREDENTIALS_FILE.is_file():
         if CREDENTIALS_FILE.stat().st_mode & 0o077:
-            print(f"Hinweis: chmod 600 {CREDENTIALS_FILE} (andere können sie lesen)")
+            print(f"Note: chmod 600 {CREDENTIALS_FILE} (others can read it)")
         for line in CREDENTIALS_FILE.read_text(encoding="utf-8").splitlines():
             name, _, value = line.strip().partition("=")
             if name.strip() in names and value.strip():
                 saved[name.strip()] = value.strip().strip("\"'")
     saved.update({name: os.environ[name] for name in names if os.environ.get(name)})
     if saved:
-        print(f"Aus Datei/Umgebung: {', '.join(sorted(saved))}")
+        print(f"From file/environment: {', '.join(sorted(saved))}")
     return saved
 
 
@@ -299,11 +299,11 @@ def main() -> None:
         return
 
     saved = saved_credentials()
-    serial = saved.get("ECOFLOW_SN") or input("Seriennummer des Wechselrichters: ")
-    username = saved.get("ECOFLOW_EMAIL") or input("E-Mail des EcoFlow-Kontos: ")
-    password = saved.get("ECOFLOW_PASSWORD") or getpass.getpass("Passwort: ")
+    serial = saved.get("ECOFLOW_SN") or input("Serial number of the inverter: ")
+    username = saved.get("ECOFLOW_EMAIL") or input("E-mail of the EcoFlow account: ")
+    password = saved.get("ECOFLOW_PASSWORD") or getpass.getpass("Password: ")
     models = ", ".join(f"{code} {name}" for code, name in MODEL_NAME_MAP.items())
-    variant = saved.get("ECOFLOW_VARIANT") or input(f"Modell ({models}) [83]: ") or "83"
+    variant = saved.get("ECOFLOW_VARIANT") or input(f"Model ({models}) [83]: ") or "83"
     serial, username, variant = serial.strip(), username.strip(), variant.strip()
 
     try:
@@ -311,7 +311,7 @@ def main() -> None:
             account(EcoflowApi(serial, username, password, variant))
         )
     except EcoflowApiError as err:
-        sys.exit(f"Anmeldung fehlgeschlagen: {err}")
+        sys.exit(f"Login failed: {err}")
 
     masker = Masker(
         serial,
@@ -324,15 +324,15 @@ def main() -> None:
     client = connect(credentials, serial, user_id, recorder)
 
     print(
-        "Notiz eintippen und Enter: markiert, was du gerade in der App machst.\n"
-        "q und Enter oder Strg+C: Ende. Angezeigt werden nur die Befehle der App\n"
-        "und die Antworten darauf; die Datei enthält alle Nachrichten.\n"
+        "Type a note and press Enter: it marks what you are doing in the app.\n"
+        "q and Enter or Ctrl+C: end. Only the commands of the app and the\n"
+        "answers to them are shown; the file holds all messages.\n"
     )
     try:
         while (text := input().strip()).lower() not in STOP:
             if text:
                 recorder.note(text)
-                print(f"  Notiz: {text}")
+                print(f"  Note: {text}")
     except (KeyboardInterrupt, EOFError):
         pass
     client.disconnect()
@@ -341,11 +341,11 @@ def main() -> None:
 
     if masker.leaks(out.read_text(encoding="utf-8")):
         out.unlink()
-        sys.exit("Eine Seriennummer stand noch in der Datei, sie wurde gelöscht.")
+        sys.exit("A serial number was still in the file, so it was deleted.")
     print(
-        f"\n{recorder.count} Einträge in {out.relative_to(ROOT)}\n"
-        "Seriennummern und Konto sind maskiert. Bitte deine Notizen vor dem "
-        "Hochladen durchsehen."
+        f"\n{recorder.count} entries in {out.relative_to(ROOT)}\n"
+        "Serial numbers and account are masked. Please review your notes "
+        "before uploading."
     )
 
 

@@ -106,7 +106,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# PowerOcean-Package zum Pfad hinzufügen
+# Add the PowerOcean package to the path
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent / "custom_components"
 

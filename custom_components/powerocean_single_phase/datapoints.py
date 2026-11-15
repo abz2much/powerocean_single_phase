@@ -530,7 +530,7 @@ class BoxSchema(TypedDict):
     model: str
     name_prefix: str
     paths: dict[str, list[str]] | None
-    sensors: set[str]  # 🔑 jetzt als Set für schnelle Lookup
+    sensors: set[str]  # 🔑 now a set, for fast lookups
 
 
 BOX_SCHEMAS: dict[str, BoxSchema] = {

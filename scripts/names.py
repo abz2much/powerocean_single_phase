@@ -80,7 +80,7 @@ def add_missing(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     """Return rows without names for the fixture keys the table lacks."""
     listed = {row["key"] for row in rows}
     return [
-        dict.fromkeys(COLUMNS, "") | {"group": f"Neu: {device}", "key": key}
+        dict.fromkeys(COLUMNS, "") | {"group": f"New: {device}", "key": key}
         for key, device in fixture_keys().items()
         if key not in listed
     ]
@@ -104,17 +104,17 @@ def problems(rows: list[dict[str, str]]) -> list[str]:
     for row in rows:
         context, key = row["context"], row["key"]
         if not key:
-            found.append(f"Zeile ohne Schlüssel: {row}")
+            found.append(f"Row without key: {row}")
             continue
         if context not in contexts:
-            found.append(f"{key}: unbekannter Kontext {context!r}")
+            found.append(f"{key}: unknown context {context!r}")
         if context and key in TRANSLATED_STATES:
-            found.append(f"{key}: übersetzte Zustände gibt es nur ohne Kontext")
+            found.append(f"{key}: translated states exist only without a context")
         if not row["en"]:
             continue
         name_key = name_translation_key(context, key)
         if name_key in seen and seen[name_key] != (context, key):
-            found.append(f"{key}: Übersetzungsschlüssel {name_key} doppelt")
+            found.append(f"{key}: translation key {name_key} is used twice")
         seen[name_key] = (context, key)
     return found
 
@@ -171,7 +171,7 @@ def main() -> int:
     """Update or check the table and the generated files."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[1])
     parser.add_argument(
-        "--check", action="store_true", help="nur prüfen, nichts schreiben"
+        "--check", action="store_true", help="only check, write nothing"
     )
     args = parser.parse_args()
 
@@ -180,7 +180,7 @@ def main() -> int:
     rows += new_rows
     found = problems(rows)
     for problem in found:
-        print(f"Fehler: {problem}")
+        print(f"Error: {problem}")
     if found:
         return 1
 
@@ -192,14 +192,14 @@ def main() -> int:
         if not path.exists() or path.read_text("utf-8") != text
     ]
     for path in changed:
-        state = "veraltet" if args.check else "geschrieben"
+        state = "out of date" if args.check else "written"
         print(f"{state}: {path.relative_to(ROOT)}")
         if not args.check:
             path.write_text(outputs[path], encoding="utf-8")
     if new_rows:
-        print(f"{len(new_rows)} neue Schlüssel ohne Namen in der Tabelle")
+        print(f"{len(new_rows)} new keys without a name in the table")
     named = len(names(rows))
-    print(f"{named} von {len(rows)} Zeilen mit Namen")
+    print(f"{named} of {len(rows)} rows with a name")
     return 1 if args.check and changed else 0
 
 

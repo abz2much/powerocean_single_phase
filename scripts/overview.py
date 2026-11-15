@@ -85,11 +85,11 @@ def _report(endpoint: PowerOceanEndPoint) -> str:
 def _section(endpoint: PowerOceanEndPoint) -> str:
     """Return the section of the device page, as sensor.py decides it."""
     if not endpoint.enabled_default:
-        return "Deaktiviert"
+        return "Disabled"
     unit = endpoint.cls[1] if endpoint.cls else None
     if unit is None or endpoint.diagnostic:
-        return "Diagnose"
-    return "Sensoren"
+        return "Diagnostic"
+    return "Sensors"
 
 
 def overview(response: dict[str, Any], variant: str, sn: str, title: str) -> str:
@@ -117,17 +117,17 @@ def overview(response: dict[str, Any], variant: str, sn: str, title: str) -> str
     if sn in devices:
         devices[sn]["name"] = DEFAULT_NAME
 
-    lines = [f"# Übersicht: {title}", ""]
+    lines = [f"# Overview: {title}", ""]
     sections = defaultdict(int)
     for endpoint in endpoints:
         sections[_section(endpoint)] += 1
     lines += [
-        f"Variante {variant}, Seriennummer {sn}: {len(endpoints)} Entities auf "
-        f"{len(devices)} Geräten ("
+        f"Variant {variant}, serial number {sn}: {len(endpoints)} entities on "
+        f"{len(devices)} devices ("
         + ", ".join(f"{count} {name}" for name, count in sorted(sections.items()))
         + ")",
         "",
-        "## Geräte",
+        "## Devices",
         "",
     ]
 
@@ -142,7 +142,7 @@ def overview(response: dict[str, Any], variant: str, sn: str, title: str) -> str
             device = devices[device_sn]
             lines.append(
                 f"{'  ' * depth}- **{device['name']}** - {device['model']}, "
-                f"{len(entities[device_sn])} Entities"
+                f"{len(entities[device_sn])} entities"
             )
             tree(device_sn, depth + 1)
 
@@ -153,14 +153,14 @@ def overview(response: dict[str, Any], variant: str, sn: str, title: str) -> str
         by_section: dict[str, list[PowerOceanEndPoint]] = defaultdict(list)
         for endpoint in entities[device_sn]:
             by_section[_section(endpoint)].append(endpoint)
-        for section in ("Sensoren", "Diagnose", "Deaktiviert"):
+        for section in ("Sensors", "Diagnostic", "Disabled"):
             if not by_section[section]:
                 continue
             lines += [
                 "",
                 f"### {section} ({len(by_section[section])})",
                 "",
-                "| Name | Key | Wert | Einheit | Report |",
+                "| Name | Key | Value | Unit | Report |",
                 "|---|---|---|---|---|",
             ]
             rows = sorted(
@@ -199,7 +199,7 @@ def main() -> None:
     )
     if args.output:
         Path(args.output).write_text(text, "utf-8")
-        print(f"Geschrieben: {args.output}")  # noqa: T201
+        print(f"Written: {args.output}")  # noqa: T201
     else:
         print(text)  # noqa: T201
 

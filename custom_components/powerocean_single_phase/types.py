@@ -546,7 +546,7 @@ class SensorMetaHelper:
             (r"(pv|mppt).*amp", "mdi:current-dc"),
             (r"(pv|mppt).*resist", "mdi:resistor"),
             (r"_pwr$", "mdi:flash"),
-            # Netz / Haus / Batterie
+            # Grid / house / battery
             (r"solartobattery|solartogrid|solartohouse", "mdi:solar-power"),
             (
                 r"(housepower|sysloadpwr|pcsactpwr|pcsmeterpower)",
@@ -556,9 +556,9 @@ class SensorMetaHelper:
             (r"batterytohouse", "mdi:battery-arrow-up"),
             (r"batterytogrid", "mdi:transmission-tower-export"),
             (r"gridtobattery", "mdi:battery-arrow-down"),
-            # Strom / Spannung
+            # Current / voltage
             (r"_amp$", "mdi:current-ac"),
-            # Batterie / Speicher
+            # Battery / storage
             (r"(soc)", "mdi:battery"),
             (r"(soh)", "mdi:battery-heart-variant"),
             (r"(remainwatth)", "mdi:home-battery"),

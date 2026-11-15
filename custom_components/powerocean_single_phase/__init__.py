@@ -56,7 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PowerOceanConfigEntry) -
     device_id = entry.data.get(CONF_DEVICE_ID)
     model_id = entry.data.get(CONF_MODEL_ID)
     if not device_id or not model_id:
-        # Kann sich nicht von selbst beheben → kein Retry
+        # Cannot fix itself, so no retry
         raise ConfigEntryError(
             translation_domain=DOMAIN, translation_key="missing_configuration"
         )
@@ -69,8 +69,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PowerOceanConfigEntry) -
         model_id,
     )
 
-    # Login und erster Abruf. Netzwerkfehler führen zum Retry des Setups,
-    # abgelehnte Zugangsdaten starten den Reauth-Flow.
+    # Login and first fetch. Network errors retry the setup, rejected
+    # credentials start the reauth flow.
     coordinator = PowerOceanCoordinator(hass, entry, api)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
@@ -108,15 +108,15 @@ async def async_migrate_entry(
 ) -> bool:
     """Migrate old config entries to new structure."""
     if entry.version > 2:
-        # Downgrade von einer neueren Version wird nicht unterstützt
+        # Downgrading from a newer version is not supported
         return False
 
     data = dict(entry.data)
     options = dict(entry.options)
 
     if entry.version < 2 and "user_input" in data:
-        # 1.x: Zugangsdaten unter data["user_input"], Name und Intervall
-        # unter data["options"] (siehe unten)
+        # 1.x: credentials under data["user_input"], name and interval
+        # under data["options"] (see below)
         old = data.pop("user_input")
 
         data.update(
@@ -129,8 +129,8 @@ async def async_migrate_entry(
         )
 
     if entry.version < 2 or entry.minor_version < 2:
-        # 1.x und 2.1: Optionen aus data["options"] übernehmen und die
-        # Altlasten aus data entfernen
+        # 1.x and 2.1: take the options from data["options"] and remove
+        # the legacy values from data
         legacy_options = data.pop("options", None) or {}
         data.pop("device_info", None)
         legacy_name = legacy_options.get(CONF_FRIENDLY_NAME)
@@ -139,8 +139,8 @@ async def async_migrate_entry(
             CONF_SCAN_INTERVAL,
             legacy_options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         )
-        # Die Migration auf 2.1 hat den Namen aus data["options"] übersehen
-        # und den Standardnamen gesetzt. Einen eigenen Namen nicht anfassen.
+        # The migration to 2.1 missed the name in data["options"] and set
+        # the default name. Leave a custom name alone.
         if legacy_name and options.get(CONF_FRIENDLY_NAME) in (None, DEFAULT_NAME):
             options[CONF_FRIENDLY_NAME] = legacy_name
         options.setdefault(CONF_FRIENDLY_NAME, DEFAULT_NAME)
@@ -148,12 +148,12 @@ async def async_migrate_entry(
     # Entities that are no longer provided, by the version that dropped them
     inverter = data.get(CONF_DEVICE_ID) or ""
     obsolete: list[tuple[int, Callable[[str], bool]]] = [
-        # 2.3: Die Batterie-Firmware steht jetzt auf der Geräteseite
+        # 2.3: The battery firmware is now shown on the device page
         (3, lambda unique_id: unique_id.endswith("_moduleAplSwVer")),
-        # 2.4: Die Anlagenwerte aus EDEV_SYS_REPORT hingen an der Wallbox,
-        # jetzt am Wechselrichter (neue unique_id)
+        # 2.4: The system values from EDEV_SYS_REPORT belonged to the
+        # wallbox, now to the inverter (new unique_id)
         (4, lambda unique_id: _is_edev_system_value_of_device(unique_id, inverter)),
-        # 2.5: Die Seriennummern stehen schon in der Geräteinfo
+        # 2.5: The serial numbers are already in the device info
         (5, lambda unique_id: unique_id.rpartition("_")[2] in SN_KEYS),
     ]
     removed = [
@@ -184,7 +184,7 @@ async def async_migrate_entry(
 
 def _is_edev_system_value_of_device(unique_id: str, inverter: str) -> bool:
     """Return True for a system value of EDEV_SYS_REPORT on another device."""
-    # unique_id = <Seriennummer>_<Präfix>_EDEV_SYS_REPORT_<Schlüssel>
+    # unique_id = <serial number>_<prefix>_EDEV_SYS_REPORT_<key>
     head, found, key = unique_id.rpartition("_EDEV_SYS_REPORT_")
     return bool(found) and key in EDEV_SYSTEM_KEYS and not head.startswith(inverter)
 

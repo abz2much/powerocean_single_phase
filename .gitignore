@@ -18,5 +18,5 @@ coverage.xml
 config/*
 !config/configuration.yaml
 
-# Messungen von scripts/interval
+# Measurements from scripts/interval
 measurements/
