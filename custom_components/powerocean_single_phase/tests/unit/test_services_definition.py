@@ -79,6 +79,7 @@ def test_the_error_texts_of_the_actions_exist(file: str) -> None:
         "schedule_invalid_power",
         "schedule_overlap",
         "schedule_limit_reached",
+        "schedule_not_confirmed",
     ):
         assert exceptions[key]["message"], key
 

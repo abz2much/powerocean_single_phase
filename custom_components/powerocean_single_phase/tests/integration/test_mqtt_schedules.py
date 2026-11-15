@@ -33,6 +33,7 @@ from custom_components.powerocean_single_phase.tests.integration.test_mqtt impor
 
 MAX_POWER = 6000
 TIMEOUT = "custom_components.powerocean_single_phase.coordinator.COMMAND_TIMEOUT"
+DELAY = "custom_components.powerocean_single_phase.coordinator.SCHEDULE_CONFIRM_DELAY"
 
 
 def hm(hour: int, minute: int = 0) -> int:
@@ -77,6 +78,10 @@ class ScheduleMqtt(FakeMqtt):
 
     system: ClassVar[list[Schedule]] = []
     answer_lists: ClassVar[bool] = True
+    # The next lists still show the state before the last command (the real
+    # system may need a moment to show a change)
+    stale_replies: ClassVar[int] = 0
+    stale_system: ClassVar[list[Schedule]] = []
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Count the requests and record the commands."""
@@ -87,13 +92,19 @@ class ScheduleMqtt(FakeMqtt):
     def request_schedules(self) -> None:
         """Answer with the schedules of the system (paho's thread)."""
         self.list_requests += 1
-        if ScheduleMqtt.answer_lists:
+        if not ScheduleMqtt.answer_lists:
+            return
+        if ScheduleMqtt.stale_replies > 0:
+            ScheduleMqtt.stale_replies -= 1
+            self.callbacks.on_schedules(list(ScheduleMqtt.stale_system))
+        else:
             self.callbacks.on_schedules(list(ScheduleMqtt.system))
 
     def _answer(
         self, seq: int, change: Callable[[list[Schedule]], list[Schedule]]
     ) -> None:
         if FakeMqtt.acknowledge:
+            ScheduleMqtt.stale_system = list(ScheduleMqtt.system)
             ScheduleMqtt.system = change(list(ScheduleMqtt.system))
             self.callbacks.on_ack(seq)
 
@@ -152,6 +163,8 @@ def cloud() -> Generator[None]:
     FakeMqtt.acknowledge = True
     ScheduleMqtt.system = system_schedules()
     ScheduleMqtt.answer_lists = True
+    ScheduleMqtt.stale_replies = 0
+    ScheduleMqtt.stale_system = system_schedules()
     with (
         patch(
             "custom_components.powerocean_single_phase.ecoflow.HAEcoflowApi.async_authorize",
@@ -439,16 +452,21 @@ async def test_a_command_without_acknowledgement_fails_and_changes_nothing(
     assert _client().list_requests == 1
 
 
-async def test_a_missing_answer_to_the_new_reading_is_no_error(
+async def test_a_command_the_list_does_not_confirm_is_reported(
     hass: HomeAssistant, cloud: None
 ) -> None:
     coordinator = (await _setup(hass)).runtime_data
     ScheduleMqtt.answer_lists = False
 
-    with patch(TIMEOUT, 0.01):
+    with (
+        patch(TIMEOUT, 0.05),
+        patch(DELAY, 0),
+        pytest.raises(HomeAssistantError) as error,
+    ):
         await coordinator.async_set_schedule_enabled(12, enabled=True)
 
-    # The command was acknowledged; the state follows with the next poll
+    # The command was acknowledged, but nothing shows that it took effect
+    assert _key(error) == "schedule_not_confirmed"
     assert _client().commands == [("switch", (12, 1))]
     assert coordinator.schedules[12].enabled is False
 
@@ -821,3 +839,129 @@ async def test_at_the_limit_update_and_delete_still_work(
     await coordinator.async_delete_schedule(10)
 
     assert len(coordinator.schedules) == 5
+
+
+# -----------------------------
+# The system may need a moment to show a change
+# -----------------------------
+
+
+async def test_an_add_waits_until_the_list_shows_it(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+    ScheduleMqtt.stale_replies = 2
+
+    with patch(DELAY, 0):
+        new_id = await coordinator.async_add_schedule(
+            schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(10), end=hm(11)
+        )
+
+    assert coordinator.schedules[new_id].start == hm(10)
+    # The start, two lists that did not show it yet, and the one that did
+    assert _client().list_requests == 4
+
+
+async def test_two_adds_in_a_row_get_different_ids_with_a_stale_list(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+    ScheduleMqtt.stale_replies = 3
+    windows = [(hm(10), hm(11)), (hm(12), hm(13))]
+
+    with patch(DELAY, 0):
+        ids = await asyncio.gather(
+            *(
+                coordinator.async_add_schedule(
+                    schedule_type=SCHEDULE_CHARGE, power=1000, start=start, end=end
+                )
+                for start, end in windows
+            )
+        )
+
+    assert sorted(ids) == [13, 14]
+    assert sorted(coordinator.schedules) == [10, 11, 12, 13, 14]
+
+
+async def test_a_stale_list_does_not_hide_an_overlap(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+    ScheduleMqtt.stale_replies = 3
+
+    with patch(DELAY, 0):
+        results = await asyncio.gather(
+            coordinator.async_add_schedule(
+                schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(10), end=hm(12)
+            ),
+            coordinator.async_add_schedule(
+                schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(11), end=hm(13)
+            ),
+            return_exceptions=True,
+        )
+
+    assert results[0] == 13
+    assert isinstance(results[1], HomeAssistantError)
+    assert results[1].translation_key == "schedule_overlap"
+
+
+async def test_an_id_is_not_used_again_while_the_list_does_not_show_it(
+    hass: HomeAssistant, cloud: None
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+    ScheduleMqtt.stale_replies = 1000
+
+    with (
+        patch(TIMEOUT, 0.05),
+        patch(DELAY, 0),
+        pytest.raises(HomeAssistantError) as error,
+    ):
+        await coordinator.async_add_schedule(
+            schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(10), end=hm(11)
+        )
+    assert _key(error) == "schedule_not_confirmed"
+
+    # The system has it as 13; the list may show it late. The next one is 14
+    ScheduleMqtt.stale_replies = 0
+    await coordinator.async_add_schedule(
+        schedule_type=SCHEDULE_CHARGE, power=1000, start=hm(12), end=hm(13)
+    )
+
+    ids = [schedule.schedule_id for _, schedule in _client().commands]
+    assert ids == [13, 14]
+
+
+@pytest.mark.parametrize(
+    ("command", "shown"),
+    [
+        (
+            lambda c: c.async_set_schedule_enabled(12, enabled=True),
+            lambda c: c.schedules[12].enabled is True,
+        ),
+        (
+            lambda c: c.async_delete_schedule(11),
+            lambda c: 11 not in c.schedules,
+        ),
+        (
+            lambda c: c.async_update_schedule(10, power=1234),
+            lambda c: c.schedules[10].power == 1234,
+        ),
+    ],
+    ids=["switch", "delete", "update"],
+)
+async def test_every_command_waits_until_the_list_shows_it(
+    hass: HomeAssistant,
+    cloud: None,
+    command: Callable[[Any], Any],
+    shown: Callable[[Any], bool],
+) -> None:
+    coordinator = (await _setup(hass)).runtime_data
+    ScheduleMqtt.stale_replies = 2
+
+    with patch(DELAY, 0):
+        await command(coordinator)
+
+    # Back from the command, the list already shows it: after the start, two
+    # lists that did not and the one that did
+    assert shown(coordinator)
+    assert _client().list_requests == 4

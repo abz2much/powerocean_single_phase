@@ -86,6 +86,8 @@ COMMAND_TIMEOUT = 10
 # How often the schedules are asked for (the system does not report changes,
 # e.g. when it moves to the next schedule by itself)
 SCHEDULE_POLL_INTERVAL = timedelta(seconds=60)
+# Seconds between two readings while waiting for the list to show a change
+SCHEDULE_CONFIRM_DELAY = 0.5
 SCHEDULE_TYPES = (SCHEDULE_CHARGE, SCHEDULE_USE_BATTERY)
 # The most schedules the app allows
 MAX_SCHEDULES = 6
@@ -167,6 +169,8 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         # Scheduled tasks (option MQTT), by id; None-known until the first list
         self.schedules: dict[int, Schedule] = {}
         self._schedules_known = False
+        # Highest id of a schedule we added: the list may not show it yet
+        self._last_added_id = 0
         self._schedule_poll_unsub: Callable[[], None] | None = None
         # Waiting for the list after a command
         self._schedule_waiters: list[asyncio.Future[None]] = []
@@ -353,6 +357,7 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             self._schedule_poll_unsub = None
         self.schedules = {}
         self._schedules_known = False
+        self._last_added_id = 0
         if self.mqtt:
             client, self.mqtt = self.mqtt, None
             await self.hass.async_add_executor_job(client.stop)
@@ -621,18 +626,42 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             _refuse("schedule_not_found", schedule_id=schedule_id)
         return self.schedules[schedule_id]
 
-    async def _async_reread_schedules(self, mqtt: PowerOceanMqtt) -> None:
-        """Read the list again after a command; no answer is not an error."""
+    async def _async_read_schedules(self, mqtt: PowerOceanMqtt) -> None:
+        """Ask for the list and wait for the next one."""
         waiter = self.hass.loop.create_future()
         self._schedule_waiters.append(waiter)
         try:
             await self.hass.async_add_executor_job(mqtt.request_schedules)
-            async with asyncio.timeout(COMMAND_TIMEOUT):
-                await waiter
-        except TimeoutError:
-            LOGGER.debug("No answer to reading the schedules again")
+            await waiter
         finally:
             self._schedule_waiters.remove(waiter)
+
+    async def _async_confirm_schedules(
+        self, mqtt: PowerOceanMqtt, shown: Callable[[dict[int, Schedule]], bool]
+    ) -> None:
+        """
+        Read the list until it shows what a command did.
+
+        The system acknowledges a command before its list shows the change.
+        Going on with the old list would reuse an id or miss an overlap.
+
+        Raises:
+            HomeAssistantError: If the list does not show it within
+                COMMAND_TIMEOUT. The command was acknowledged, so it may
+                still take effect.
+
+        """
+        try:
+            async with asyncio.timeout(COMMAND_TIMEOUT):
+                while True:
+                    await self._async_read_schedules(mqtt)
+                    if shown(self.schedules):
+                        return
+                    await asyncio.sleep(SCHEDULE_CONFIRM_DELAY)
+        except TimeoutError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="schedule_not_confirmed"
+            ) from err
 
     async def async_set_schedule_enabled(
         self, schedule_id: int, *, enabled: bool
@@ -651,7 +680,12 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             await self._async_command(
                 mqtt.set_schedule_enabled, schedule_id, int(enabled)
             )
-            await self._async_reread_schedules(mqtt)
+            await self._async_confirm_schedules(
+                mqtt,
+                lambda shown: (
+                    schedule_id in shown and shown[schedule_id].enabled is enabled
+                ),
+            )
 
     async def async_delete_schedule(self, schedule_id: int) -> None:
         """Delete a schedule, wait for the acknowledgement, read again."""
@@ -659,7 +693,9 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             mqtt = self._connected_mqtt()
             self._known_schedule(schedule_id)
             await self._async_command(mqtt.delete_schedule, schedule_id)
-            await self._async_reread_schedules(mqtt)
+            await self._async_confirm_schedules(
+                mqtt, lambda shown: schedule_id not in shown
+            )
 
     async def async_add_schedule(  # noqa: PLR0913
         self,
@@ -691,7 +727,8 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             if len(self.schedules) >= MAX_SCHEDULES:
                 _refuse("schedule_limit_reached", max=MAX_SCHEDULES)
             schedule = Schedule(
-                schedule_id=max(self.schedules, default=0) + 1,
+                schedule_id=max(max(self.schedules, default=0), self._last_added_id)
+                + 1,
                 schedule_type=schedule_type,
                 enabled=enabled,
                 power=power,
@@ -703,7 +740,11 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             validate_schedule(schedule, self.max_schedule_power)
             self._check_overlap(schedule)
             await self._async_command(mqtt.save_schedule, SCHEDULE_ADD, schedule)
-            await self._async_reread_schedules(mqtt)
+            self._last_added_id = schedule.schedule_id
+            await self._async_confirm_schedules(
+                mqtt,
+                lambda shown: _same_schedule(shown.get(schedule.schedule_id), schedule),
+            )
             return schedule.schedule_id
 
     async def async_update_schedule(  # noqa: PLR0913
@@ -759,7 +800,10 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
             if start is not None or end is not None:
                 self._check_overlap(schedule)
             await self._async_command(mqtt.save_schedule, SCHEDULE_EDIT, schedule)
-            await self._async_reread_schedules(mqtt)
+            await self._async_confirm_schedules(
+                mqtt,
+                lambda shown: _same_schedule(shown.get(schedule_id), schedule),
+            )
 
     # -----------------------------
     # Live power values (option live power)
@@ -828,6 +872,14 @@ class PowerOceanCoordinator(DataUpdateCoordinator[dict[str, float | int | str]])
         for unique_id, value in self._stream_values.items():
             if unique_id in values:
                 values[unique_id] = value
+
+
+def _same_schedule(shown: Schedule | None, sent: Schedule) -> bool:
+    """Return True if the list shows a schedule as it was sent."""
+    # In use and the unknown field 2 are the system's, not part of what is sent
+    return shown is not None and replace(
+        shown, in_use=False, unknown_2=None
+    ) == replace(sent, in_use=False, unknown_2=None)
 
 
 def _refuse(key: str, **placeholders: int | str) -> NoReturn:

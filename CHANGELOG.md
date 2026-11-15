@@ -29,7 +29,8 @@
   - The actions `powerocean_single_phase.add_schedule` (target: the inverter
     device), `update_schedule` and `delete_schedule` (target: a schedule
     switch). Times are in steps of 30 minutes; each command waits for the
-    acknowledgement of the system.
+    acknowledgement of the system and for its list to show the change, and
+    gives an error if it does not.
 - **Option "Max schedule power (W)":** a whole number from 1, with no
   default. Without it, `add_schedule` and `update_schedule` refuse. The
   power of a schedule can be at most this value.
