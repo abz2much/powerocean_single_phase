@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.1
+
+### Fixed
+
+- **Impossible power values with the option "Extended connection (MQTT)" are
+  ignored.** On a PowerOcean Plus, some live power reports showed values like
+  592 491 967 730 423 000 000 000 000 000 000 W for a few seconds, in battery,
+  grid, solar and house power and in the calculated energy flows. A live power
+  report with a value that is not a number or is above 1 MW is now dropped as
+  a whole, and the sensors keep their last values. Without the MQTT option
+  nothing changes. Found by niltrip in
+  [niltrip/powerocean#189](https://github.com/niltrip/powerocean/issues/189),
+  fixed there in 2026.11.17.
+
 ## 1.0.0
 
 ### Breaking changes
